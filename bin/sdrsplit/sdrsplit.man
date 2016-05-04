@@ -1,0 +1,151 @@
+.\$Id: sdrsplit.man,v 1.7 2008/02/22 21:24:07 doug Exp $ 
+.TH SDRSPLIT 1 "22 February 2008" BDSN
+.SH NAME
+sdrsplit - split a Quanterra SDR or MiniSEED file into distint channel files.
+.SH SYNOPSIS
+.B sdrsplit
+[\ \fB\-n\fR\ ]
+[\ \fB\-c\fR\ ]
+[\ \fB\-N\fR\ network_id\ ]
+[\ \fB\-P\fR\ ]
+[\ \fB\-C\fR\ ]
+[\ \fB\-D\fR\ ]
+[\ \fB\-g \fItol\fR\ ]
+[\ \fB\-G \fItol\fR\ ]
+[\ \fB\-s\fR\ ]
+[\ \fB\-r\fR\ ]
+[\ \fB\-u\fR\ ]
+[\ \fB\-v\fR\ ]
+[\ \fB\-h\fR\ ]
+[\ \fB\-d \fIn\fR\ ]
+\fIinput_file\fR
+.br
+.SH DESCRIPTION
+The program
+.B sdrsplit
+splits block-multiplexed SEED data records (such as those
+acquired by KERMIT file transfer from a Quanterra data logger
+or MiniSEED output from RDSEED)
+into individual channel files of non-multiplexed SEED data records.
+An input file containing SEED Data Records may have a blocksize
+of 512 bytes or 4096 bytes, and a MiniSEED file may contain any
+valid MiniSEED blocksize up to and including 8192 bytes.
+The output data blocksize will be the same as the input blocksize.
+Optionally, non-continuous data can be split into discrete file, where each
+file contains a continuous timeseries.  The user can control the criteria
+for determining what is continuous or non-continuous data.
+Each output file is normally named with the filename convention of
+.br
+	station.network.channel.location.type.year.doy.hhmmss
+.br
+where type is "D" for timeseries data, "L" for console logs,
+and "O" for channels with opaque data blockettes.
+.SH OPTIONS
+.TP
+\fB\-n\fR
+specifies that no output files should be created.
+.TP
+\fB\-c\fR
+specifies that an index consisting of station, channel, network, and location
+should be written to stdout for each distinct channel in the file.
+.TP
+\fB\-N \fInetwork_id\fR
+specifies the network ID to be used if no network ID is found in the
+SEED data record header.  The default network_id is XX.
+.TP
+\fB\-P\fR
+will create output files using the Passcal filename convention of 
+yy.ddd.hh.mm.ss.net.station.channel.location instead of the standard filename convention.
+.TP
+\fB\-C\fR
+will split discontinuous data from a channel into multiple files of continuous
+data.  If this option is NOT used, all data from a given station-channel will 
+be written to a single station-channel file.
+For timeseries data, continuous data is determined by the tolerance value 
+\fItol\fR.  For opaque data channels, continuous data is determined by
+sequential blockette 2000 opaque blockette numbers.  All log channels
+are considered to be continuous.
+.TP
+\fB\-D\fR
+will split data from a channel into multiple files based on the start date
+of each record.
+.TP
+\fB\-g \fItol\fR
+considers data from a single station-channel to be non-continuous if the
+gap between any adjacent blocks for the station-channel exceeds tol ticks.  
+If this option is not specified, a default value of the the number of ticks
+for one-half of a sample interval is used.
+A tick is 1/10 msec.
+.TP
+\fB\-G \fItol\fR
+considers data from a single station-channel to be non-continuous if the
+total time slew for the station-channel exceeds tol ticks.  
+If this option is not specified, a default value of the the number of ticks
+for one-half of a sample interval is used.
+A tick is 1/10 msec.
+.TP
+\fB\-s\fR
+will split an output channel into distinct files whenever the sequence numbers
+for that channel are not sequential.
+.TP
+\fB\-r\fR
+will split an output channel into distinct files based on the sample rate as well
+as the station and channel.  This option is normally not needed, but can be used
+to split data from different sample rates that was erroneously logged into the same 
+file with the same station and channel names.
+.TP
+\fB\-d \fIn\fR
+specifies debugging output.  Current debugging options are:
+.nf
+.ta 1.0i
+4 = DEBUG_BLOCK",
+8 = DEBUG_HDRS",
+.fi
+.ad
+Multiple debugging options can be specified by adding the appropriate values
+together.
+.TP
+.B -u
+will create unique files for duplicate  records within the same data channel.
+.TP
+.B -v
+specifies verbose mode, which outputs additional messages about sequence numbers
+and blocksize.
+.TP
+.B -h
+print out a simple help message with syntax and explaination of the options.
+.TP
+\fIinput_file\fR
+.br
+is the name of the input data file.  If no input file is specified, data
+is read from stdin.
+.SH NOTES
+If the 
+.B -C 
+option is used to split non-continuous data from a channel into separate
+files of continuous data, 
+.B sdrplit
+will use the the gap and slew information specified by the 
+\fB-g\fR and \fB-G\fR
+options to determine when data is not continuous.  
+The default values of 
+\fB-g\fR and \fB-G\fR
+are one half of the sample interval.
+For example, if the sample rate is 20 samples per second (.05 seconds per sample), 
+the default values for
+\fB-g\fR and \fB-G\fR
+will be .025 seconds or 250 ticks.
+
+An output file will be created for each SEED channel that is found in the 
+input data file.
+The output files will be named
+\fIstation.network.channel.location\fR.D.\fIyyyy.ddd.hhmmss\fR 
+where \fIstation, channel,\fR and \fIdate\fR
+information is derived from the output demultiplexed SEED data channel.
+If the 
+.B -r 
+option is used, the output files will be named
+\fIstation.network.channel.location.rate\fR.D.\fIyy.ddd.hhmmss\fR where
+a positive rate implies samples/second and a negative rate implies seconds/sample.
+.SH AUTHOR
+Doug Neuhauser, UC Berkeley Seismological Laboratory, doug@seismo.berkeley.edu

@@ -1,10 +1,3 @@
-wget 
-unzip Example.zip
-export PYTHONPATH=`pwd`
-./qc.py -s OBP
-
-
-
 0 - Installation
 ----------------
 Pré-requis :

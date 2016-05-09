@@ -12,24 +12,19 @@
 Various Routines Related to Spectral Estimation
 """
 from __future__ import with_statement
-import glob
-import argparse
-from obspy.core import *
-
-from station_dictionnary import *
-from instruments import *
-import sys
-
-
 import os
 import warnings
 import cPickle
 import math
 import bisect
-import numpy as np
+import argparse
+import glob
 from sys import stdout
-from pylab import *
+import numpy as np
+from pylab import arange, array,DateFormatter,transpose,colorbar,linspace,setp,zeros,size,ma,cm,NaN,vstack,hstack
 import matplotlib.dates as mdates
+#from obspy.core import *
+from obspy import read
 from obspy.core import Trace, Stream, UTCDateTime
 #from obspy.core.util import MATPLOTLIB_VERSION
 from obspy.signal.filter import bandpass
@@ -38,11 +33,12 @@ from obspy.signal.invsim import cosine_taper
 from obspy.signal.util import prev_pow_2
 from obspy.io.xseed import *
 from obspy.signal.spectral_estimation import get_nhnm, get_nlnm
-
+from station_dictionnary import *
+from instruments import *
 
 MATPLOTLIB_VERSION = "Exist"
 
-if MATPLOTLIB_VERSION == None:
+if MATPLOTLIB_VERSION is None:
     # if matplotlib is not present be silent about it and only raise the
     # ImportError if matplotlib actually is used (currently in psd() and
     # PPSD())
@@ -72,27 +68,27 @@ else:
 # PSD PARAMTERS
 # -------------
 # build colormap as done in paper by mcnamara
-CDICT = {'red': ((0.0,  1.0, 1.0),
-                 (0.05,  1.0, 1.0),
-                 (0.2,  0.0, 0.0),
-                 (0.4,  0.0, 0.0),
-                 (0.6,  0.0, 0.0),
-                 (0.8,  1.0, 1.0),
-                 (1.0,  1.0, 1.0)),
-         'green': ((0.0,  1.0, 1.0),
-                   (0.05,  0.0, 0.0),
-                   (0.2,  0.0, 0.0),
-                   (0.4,  1.0, 1.0),
-                   (0.6,  1.0, 1.0),
-                   (0.8,  1.0, 1.0),
-                   (1.0,  0.0, 0.0)),
-         'blue': ((0.0,  1.0, 1.0),
-                  (0.05,  1.0, 1.0),
-                  (0.2,  1.0, 1.0),
-                  (0.4,  1.0, 1.0),
-                  (0.6,  0.0, 0.0),
-                  (0.8,  0.0, 0.0),
-                  (1.0,  0.0, 0.0))}
+CDICT = {'red': ((0.0, 1.0, 1.0),
+                 (0.05, 1.0, 1.0),
+                 (0.2, 0.0, 0.0),
+                 (0.4, 0.0, 0.0),
+                 (0.6, 0.0, 0.0),
+                 (0.8, 1.0, 1.0),
+                 (1.0, 1.0, 1.0)),
+         'green': ((0.0, 1.0, 1.0),
+                   (0.05, 0.0, 0.0),
+                   (0.2, 0.0, 0.0),
+                   (0.4, 1.0, 1.0),
+                   (0.6, 1.0, 1.0),
+                   (0.8, 1.0, 1.0),
+                   (1.0, 0.0, 0.0)),
+         'blue': ((0.0, 1.0, 1.0),
+                  (0.05, 1.0, 1.0),
+                  (0.2, 1.0, 1.0),
+                  (0.4, 1.0, 1.0),
+                  (0.6, 0.0, 0.0),
+                  (0.8, 0.0, 0.0),
+                  (1.0, 0.0, 0.0))}
 
 CLASS_MODEL_FILE = os.path.join(os.path.dirname(__file__),
                                 "data", "class_models.npz")
@@ -589,8 +585,7 @@ class QC():
         """
         Returns the mean psd in the per_lim and time_lim range
         """
-        bool_select_time = np.all([array(self.times_used) > time_lim[
-                                  0], array(self.times_used) < time_lim[1]], axis=0)
+        bool_select_time = np.all([array(self.times_used) > time_lim[0], array(self.times_used) < time_lim[1]], axis=0)
         bool_select_per = np.all(
             [self.per_octaves > per_lim[0], self.per_octaves < per_lim[1]], axis=0)
         mpsd = self.psd[bool_select_time, :]
@@ -599,10 +594,9 @@ class QC():
 
     def __get_ppsd(self, time_lim=(T1, T2)):
         """
-        Returns the normalised ppsd in the time_lim range 
+        Returns the normalised ppsd in the time_lim range
         """
-        bool_select_time = np.all([array(self.times_used) > time_lim[
-                                  0], array(self.times_used) < time_lim[1]], axis=0)
+        bool_select_time = np.all([array(self.times_used) > time_lim[0], array(self.times_used) < time_lim[1]], axis=0)
 
         for i, l_psd in enumerate(self.psd[bool_select_time, :]):
             hist, xedges, yedges = np.histogram2d(
@@ -940,13 +934,14 @@ def get_class():
 
 def main():
 
-    from default_qc_path import PATH_PKL, PATH_PLT, PATH_SDS
+    from default_qc_path import PATH_PKL, PATH_PLT
 
     # Arguments
     argu_parser = argparse.ArgumentParser(
         description="Run the main code to compute quality sheets for a set of STATIONS")
     argu_parser.add_argument("-s", "--stations", nargs='+', required=True,
-                             help="list of stations name. Stations must be in the station_dictionnary file. Separate STATIONS with spaces")
+                             help="list of stations name. Stations must be in the station_dictionnary file. Separate STATIONS with spaces and dots between station name, network and location code. \
+                             ex: G.SSB.00")
     argu_parser.add_argument("-b", "--starttime", default=UTCDateTime(2000, 1, 1), type=UTCDateTime,
                              help="Start time for processing. Various format accepted. Example : 2012,2,1 / 2012-02-01 / 2012,032 / 2012032 / etc ... See UTCDateTime for a complete list. Default is 2010-1-1")
     argu_parser.add_argument("-e", "--endtime", default=UTCDateTime(2055, 9, 16), type=UTCDateTime,
@@ -989,8 +984,10 @@ def main():
 
     # Loop over stations
     for sta in STA:
-        net = eval(sta)['network']
-        locid = eval(sta)['locid']
+        #net = eval(sta)['network']
+        #locid = eval(sta)['locid']
+        net,sta,locid = sta.split('.')
+        
         # use only channels in station_dictionnay
         if isinstance(chan_proc, list):
             chan_proc = intersect1d(chan_proc, eval(sta)['channels'])
@@ -999,7 +996,7 @@ def main():
 
         # Look for a DATALESS
         parser = None
-        if not(args.force_paz):
+        if not args.force_paz:
             try:
                 parser = glob.glob(eval(sta)['dataless_file'])[0]
             except:
@@ -1040,7 +1037,7 @@ def main():
 
             # Loop over days
             nb_days_read = 0
-            Stream = None
+            all_streams = None
             for d in Days:
                 d_str = "%03d" % (d.julday)
                 y_str = "%04d" % (d.year)
@@ -1063,26 +1060,26 @@ def main():
                         is_pickle = True
                     # Add traces
                     if nb_days_read == 1:
-                        Stream = stream
+                        all_streams = stream
                     else:
-                        Stream += stream
+                        all_streams += stream
 
-                if ((nb_days_read >= nb_days_pack) or (d == Days[-1])) and Stream:
+                if ((nb_days_read >= nb_days_pack) or (d == Days[-1])) and all_streams:
                     # Remove the minutes before the next hour (useful when
                     # computing statistics per hour)
                     # mst = min start time
-                    mst = min([temp.stats.starttime for temp in Stream])
+                    mst = min([temp.stats.starttime for temp in all_streams])
                     mst = UTCDateTime(mst.year, mst.month,
                                       mst.day, mst.hour, 0, 0) + 3600.
-                    Stream.trim(starttime=mst, nearest_sample=False)
+                    all_streams.trim(starttime=mst, nearest_sample=False)
                     # Trim to stop when asked
-                    Stream.trim(endtime=stop)
+                    all_streams.trim(endtime=stop)
                     # Add traces to S
-                    if len(Stream.traces) < nb_max_traces:
-                        S.add(Stream)
+                    if len(all_streams.traces) < nb_max_traces:
+                        S.add(all_streams)
 
                     nb_days_read = 0
-                    Stream = None
+                    all_streams = None
 
                     # save
                     # This can be 2 levels below to save a little bit of time
@@ -1090,7 +1087,7 @@ def main():
                     if is_pickle:
                         print filename_pkl
                         S.save(filename_pkl)
-                        print(filename_pkl + " updated")
+                        print filename_pkl + " updated"
                     else:
                         print "!!!!! Nothing saved/created for  " + net + "." + sta + "." + locid
                     # Plot
@@ -1098,7 +1095,7 @@ def main():
                         filename_plt = PATH_PLT + '/' + net + "." + \
                             sta + "." + locid + "." + chan + ".png"
                         S.plot(filename=filename_plt, show_percentiles=True)
-                        print(filename_plt + " updated")
+                        print filename_plt + " updated"
 
 
 if __name__ == '__main__':

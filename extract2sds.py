@@ -17,11 +17,12 @@ import numpy as np
 from obspy.core import *
 from datetime import datetime
 from default_qc_path import *
-
+import tempfile
+import sys
 
 # ----------- ARGUMENTS  / PARAMETERS --------------------------
-CHAN_default = ['HHZ', 'HHN', 'HHE', 'BHZ', 'BHN', 'BHE', 'LHZ', 'LHN',
-                'LHE', 'HLZ', 'HLN', 'HLE', 'BLZ', 'BLN', 'BLE', 'LLZ', 'LLN', 'LLE']
+CHAN_default = ['HHZ', 'HHN', 'HHE', 'BHZ', 'BHN', 'BHE', 'LHZ', 'LHN', 'LHE']
+CHAN_filtering = ['LCQ', 'LOG']
 
 argu_parser = argparse.ArgumentParser(
     description='extract one hour long segments from FILES and store them in the PATH_SDS directory. Use options -s -n and -l to force the station, network and location code in mseed files. Otherwise the orginal informations are preserved. Directory''s name of the SDS is based on these codes. ')
@@ -29,9 +30,9 @@ argu_parser.add_argument("-f", "--files", required=True,
                          help="File(s) to be read. If it contains wildcards(*,?,...), the string must be quoted. Example : python extract2sds.py -s TOTO -n XX \"../*HH?.*\"")
 argu_parser.add_argument("-c", "--channels", nargs='+', default=CHAN_default,
                          help="Process only CHANNELS. Do not use this option if you want to process all available channels for the corresponding station. Separate CHANNELS with spaces. No wildcard. Default is all LH?,BH?,HH?")
-argu_parser.add_argument("-b", "--starttime", default=UTCDateTime(2015, 9, 12), type=UTCDateTime,
+argu_parser.add_argument("-b", "--starttime", default=UTCDateTime(2000, 1, 1), type=UTCDateTime,
                          help="Start time for processing. Various format accepted. Example : 2012,2,1 / 2012-02-01 / 2012,032 / 2012032 / etc ... See UTCDateTime for a complete list. Default is 2010-1-1")
-argu_parser.add_argument("-e", "--endtime", default=UTCDateTime(3000, 1, 1), type=UTCDateTime,
+argu_parser.add_argument("-e", "--endtime", default=UTCDateTime(2099, 1, 1), type=UTCDateTime,
                          help="End time for processing. Various format accepted. Example : 2012,2,1 / 2012-02-01 / 2012,032 / 2012032 / etc ... See UTCDateTime for a complete list. Default is 2015-1-1")
 argu_parser.add_argument("-s", "--station", help="set station code")
 argu_parser.add_argument("-n", "--network", help="set network code")
@@ -46,6 +47,8 @@ stop = args.endtime
 PATH_SDS = args.path_sds + "/"
 files = args.files
 CHAN = args.channels
+NO_CHAN = CHAN_filtering
+
 sta = args.station
 net = args.network
 locid = args.location
@@ -54,8 +57,8 @@ locid = args.location
 
 
 # Create tmp directory to store links to valid mseed files
-path_link = '/tmp/' + datetime.now().isoformat() + '/'
-os.mkdir(path_link)
+path_link = tempfile.mkdtemp()
+file_list = []
 
 # Read header information for selected streams
 
@@ -63,22 +66,25 @@ for f in glob.glob(files):
     try:
         Temp = read(f, headonly=True)
     except:
-        #		pass
+        #       pass
         print "unable to read " + f
     else:
         chan = np.unique([s.stats['channel'] for s in Temp])
         if len(np.intersect1d(chan, CHAN)) > 0:
-            print "create link for " + os.path.basename(f)
-            os.symlink(f, path_link + os.path.basename(f))
+            file_list.append(f)
         else:
             print "No valid CHANNEL in " + os.path.basename(f)
-
 Files = path_link + '/*'
 try:
-    Stream_in_head = read(Files, headonly=True)
+    Stream_in_head = Stream()
+    for file in file_list:
+        Stream_in_head += read(file, headonly=True)
 except:
+    e = sys.exc_info()[0]
+    print e
     print("No valid data file found for " + files)
 else:
+    print Stream_in_head
     chan_exist = np.unique([s.stats['channel'] for s in Stream_in_head])
     Start_tr = [s.stats['starttime'] for s in Stream_in_head]
     Stop_tr = [s.stats['endtime'] for s in Stream_in_head]
@@ -126,14 +132,12 @@ else:
                       86400, nearest_sample=False)
         for chan in CHAN:
             S = Stream.select(channel=chan)
-            # Merge
-            # S.merge()
             S.merge(fill_value="latest")
             # change ID info
             for tr in S:
                 # fill masked array
                 # if np.ma.isMaskedArray(tr.data):
-                #	tr.data=tr.data.filled()
+                #   tr.data=tr.data.filled()
                 if sta:
                     tr.stats.station = sta
                 else:

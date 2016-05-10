@@ -193,7 +193,7 @@ def welch_window(N):
 # ------------------------------------------------------------
 
 
-class QC():
+class QC(object):
     """
     Class to compile probabilistic power spectral densities+STA/LTA detections
     for one combination of network/station/location/channel/sampling_rate.
@@ -606,7 +606,6 @@ class QC():
             except:
                 hist_stack = hist
         hist_stack = hist_stack * 100.0 / i
-
         return hist_stack
 
     def save(self, filename):
@@ -1053,7 +1052,7 @@ def main():
                     print "reading " + PATH_DATA
                     nb_days_read += 1
                     # Initiate the QC
-                    if is_pickle == False:
+                    if is_pickle is False:
                         tr = stream[0]
                         S = QC(tr.stats, parser=parser,
                                paz=paz, skip_on_gaps=True)

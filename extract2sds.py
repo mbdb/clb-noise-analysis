@@ -22,7 +22,6 @@ import sys
 
 # ----------- ARGUMENTS  / PARAMETERS --------------------------
 CHAN_default = ['HHZ', 'HHN', 'HHE', 'BHZ', 'BHN', 'BHE', 'LHZ', 'LHN', 'LHE']
-CHAN_filtering = ['LCQ', 'LOG']
 
 argu_parser = argparse.ArgumentParser(
     description='extract one hour long segments from FILES and store them in the PATH_SDS directory. Use options -s -n and -l to force the station, network and location code in mseed files. Otherwise the orginal informations are preserved. Directory''s name of the SDS is based on these codes. ')
@@ -47,7 +46,6 @@ stop = args.endtime
 PATH_SDS = args.path_sds + "/"
 files = args.files
 CHAN = args.channels
-NO_CHAN = CHAN_filtering
 
 sta = args.station
 net = args.network
@@ -56,8 +54,6 @@ locid = args.location
 # ----------- END OF ARGUMENTS / PARAMETERS -------------------
 
 
-# Create tmp directory to store links to valid mseed files
-path_link = tempfile.mkdtemp()
 file_list = []
 
 # Read header information for selected streams
@@ -74,7 +70,6 @@ for f in glob.glob(files):
             file_list.append(f)
         else:
             print "No valid CHANNEL in " + os.path.basename(f)
-Files = path_link + '/*'
 try:
     Stream_in_head = Stream()
     for file in file_list:
@@ -84,7 +79,7 @@ except:
     print e
     print("No valid data file found for " + files)
 else:
-    print Stream_in_head
+    #print(Stream_in_head.__str__(extended=True))
     chan_exist = np.unique([s.stats['channel'] for s in Stream_in_head])
     Start_tr = [s.stats['starttime'] for s in Stream_in_head]
     Stop_tr = [s.stats['endtime'] for s in Stream_in_head]
@@ -121,6 +116,15 @@ else:
                     except:
                         pass
 
+
+    all_streams = Stream()
+    for file in file_list:
+        print "Reading data from "+file
+        all_streams+=read(file,nearest_sample=False,
+#                      sourcename=None)
+                      sourcename='*.[BHL][HL][ZNE]')
+
+    
     # Create array of Days encompassed
     tmin = UTCDateTime(tmin.timestamp // 86400 * 86400)
     tmax = UTCDateTime(tmax.timestamp // 86400 * 86400 + 86400)
@@ -128,16 +132,14 @@ else:
 
     # Process every days for each channel
     for day in Days:
-        Stream = read(Files, starttime=day, endtime=day +
-                      86400, nearest_sample=False)
+        day_streams=all_streams.slice(day, day+86400)
+
         for chan in CHAN:
-            S = Stream.select(channel=chan)
+            S = day_streams.select(channel=chan)
             S.merge(fill_value="latest")
             # change ID info
             for tr in S:
-                # fill masked array
-                # if np.ma.isMaskedArray(tr.data):
-                #   tr.data=tr.data.filled()
+
                 if sta:
                     tr.stats.station = sta
                 else:
@@ -153,6 +155,8 @@ else:
                 t0 = tr.stats.starttime
                 nameout = "%s/%04i/%s/%s/%s.D/%s.%s.%s.%s.D.%04i.%03i" % (
                     PATH_SDS, t0.year, net, sta, chan, sta, net, chan, locid, t0.year, t0.julday)
+                print nameout
+                print tr
                 tr.write(nameout, format="MSEED")
                 print("write %s (%i samples, %10.2f seconds)" %
                       (nameout, tr.stats.npts, tr.stats.endtime - t0))

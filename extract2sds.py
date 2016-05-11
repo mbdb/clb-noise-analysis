@@ -121,8 +121,7 @@ else:
     for file in file_list:
         print "Reading data from "+file
         all_streams+=read(file,nearest_sample=False,
-#                      sourcename=None)
-                      sourcename='*.[BHL][HL][ZNE]')
+                      sourcename='*.[BHL][HL][ZNE]', details=True)
 
     
     # Create array of Days encompassed

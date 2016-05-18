@@ -16,9 +16,12 @@ import argparse
 import numpy as np
 from obspy.core import *
 from datetime import datetime
+from obspy import UTCDateTime
 from default_qc_path import *
 import tempfile
 import sys
+from IPython import embed
+
 
 # ----------- ARGUMENTS  / PARAMETERS --------------------------
 CHAN_default = ['HHZ', 'HHN', 'HHE', 'BHZ', 'BHN', 'BHE', 'LHZ', 'LHN', 'LHE']
@@ -53,7 +56,7 @@ locid = args.location
 
 # ----------- END OF ARGUMENTS / PARAMETERS -------------------
 
-
+debut=UTCDateTime()
 file_list = []
 
 # Read header information for selected streams
@@ -70,92 +73,54 @@ for f in glob.glob(files):
             file_list.append(f)
         else:
             print "No valid CHANNEL in " + os.path.basename(f)
-try:
-    Stream_in_head = Stream()
-    for file in file_list:
-        Stream_in_head += read(file, headonly=True)
-except:
-    e = sys.exc_info()[0]
-    print e
-    print("No valid data file found for " + files)
-else:
-    #print(Stream_in_head.__str__(extended=True))
-    chan_exist = np.unique([s.stats['channel'] for s in Stream_in_head])
-    Start_tr = [s.stats['starttime'] for s in Stream_in_head]
-    Stop_tr = [s.stats['endtime'] for s in Stream_in_head]
-    net_dir = np.unique([s.stats['network'] for s in Stream_in_head])
-    sta_dir = np.unique([s.stats['station'] for s in Stream_in_head])
-    CHAN = np.intersect1d(chan_exist, CHAN)
-    tmin = min(Start_tr)
-    tmax = max(Stop_tr)
-    year_dir = np.arange(tmin.year, tmax.year + 1)
-    if net:
-        net_dir = np.array([net])
-    if sta:
-        sta_dir = np.array([sta])
-    # Create output directories (SDS structure)
-    for y in year_dir:
-        try:
-            os.mkdir(PATH_SDS + str(y))
-        except:
-            pass
-        for n in net_dir:
-            try:
-                os.mkdir(PATH_SDS + str(y) + '/' + n)
-            except:
-                pass
-            for s in sta_dir:
-                try:
-                    os.mkdir(PATH_SDS + str(y) + '/' + n + '/' + s)
-                except:
-                    pass
-                for chan in CHAN:
-                    try:
-                        os.mkdir(PATH_SDS + str(y) + '/' + n +
-                                 '/' + s + '/' + chan + ".D")
-                    except:
-                        pass
+            
+#read all files
+all_streams = Stream()
+for file in file_list:
+    print "Reading data from "+file
+    all_streams+=read(file,nearest_sample=False,
+                  sourcename='*.[BHL][HL][ZNE]', details=True)
 
+# Create array of Days encompassed
+tmin = UTCDateTime((np.min([ f.stats.starttime for f in all_streams.traces])).timestamp // 86400 * 86400)
+tmax = UTCDateTime((np.max([ f.stats.starttime for f in all_streams.traces])).timestamp // 86400 * 86400 + 86400)
+Days = np.arange(max(start, tmin), min(tmax, stop), 86400)
 
-    all_streams = Stream()
-    for file in file_list:
-        print "Reading data from "+file
-        all_streams+=read(file,nearest_sample=False,
-                      sourcename='*.[BHL][HL][ZNE]', details=True)
+# Process every days for each channel
+for day in Days:
+    day_streams=all_streams.slice(day, day+86400)
 
-    
-    # Create array of Days encompassed
-    tmin = UTCDateTime(tmin.timestamp // 86400 * 86400)
-    tmax = UTCDateTime(tmax.timestamp // 86400 * 86400 + 86400)
-    Days = np.arange(max(start, tmin), min(tmax, stop), 86400)
+    for chan in CHAN:
+        S = day_streams.select(channel=chan)
+        S.merge(fill_value="latest")
+        # change ID info
+        for tr in S:
 
-    # Process every days for each channel
-    for day in Days:
-        day_streams=all_streams.slice(day, day+86400)
+            if sta:
+                tr.stats.station = sta
+            else:
+                sta = tr.stats.station
+            if net:
+                tr.stats.network = net
+            else:
+                net = tr.stats.network
+            if locid:
+                tr.stats.location = locid
+            else:
+                locid = tr.stats.location
+            t0 = tr.stats.starttime
+            file_dir=PATH_SDS+str(t0.year)+'/'+net+'/'+sta+'/'+chan+'.D'
+            if not os.path.exists(file_dir):
+                os.makedirs(file_dir)
+            nameout = "%s/%s.%s.%s.%s.D.%04i.%03i" % (
+                file_dir, sta,net,chan, locid, t0.year, t0.julday)
 
-        for chan in CHAN:
-            S = day_streams.select(channel=chan)
-            S.merge(fill_value="latest")
-            # change ID info
-            for tr in S:
+            print nameout
+            print tr
+            tr.write(nameout, format="MSEED")
+            print("write %s (%i samples, %10.2f seconds)" %
+                  (nameout, tr.stats.npts, tr.stats.endtime - t0))
+fin=UTCDateTime()
 
-                if sta:
-                    tr.stats.station = sta
-                else:
-                    sta = tr.stats.station
-                if net:
-                    tr.stats.network = net
-                else:
-                    net = tr.stats.network
-                if locid:
-                    tr.stats.location = locid
-                else:
-                    locid = tr.stats.location
-                t0 = tr.stats.starttime
-                nameout = "%s/%04i/%s/%s/%s.D/%s.%s.%s.%s.D.%04i.%03i" % (
-                    PATH_SDS, t0.year, net, sta, chan, sta, net, chan, locid, t0.year, t0.julday)
-                print nameout
-                print tr
-                tr.write(nameout, format="MSEED")
-                print("write %s (%i samples, %10.2f seconds)" %
-                      (nameout, tr.stats.npts, tr.stats.endtime - t0))
+      
+print str(fin-debut)

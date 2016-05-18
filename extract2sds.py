@@ -69,8 +69,6 @@ locid = args.location
 
 # ----------- END OF ARGUMENTS / PARAMETERS -------------------
 
-debut = UTCDateTime()
-
 # read all files
 all_streams = Stream()
 for input_file in glob.glob(input_files):
@@ -119,5 +117,3 @@ for day in Days:
             day_trace.write(nameout, format="MSEED")
             print("write %s (%i samples, %10.2f seconds)" %
                   (nameout, day_trace.stats.npts, day_trace.stats.endtime - t0))
-fin = UTCDateTime()
-print str(fin - debut)

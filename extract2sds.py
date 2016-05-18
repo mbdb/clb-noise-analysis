@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 #------------------------------------------------------------------------------
 # Filename: extract2sds.py
-#  Version: 1.2
+#  Version: 1.3
 #  Purpose: Convert seismic data into 1 day long segments starting at time 00h00min00s and store them into a Standard Data Structure (SDS)
 #     Note: Input data must be in format readable with obspy (works for mseed,sac, ... as well as raw data from Quanterra digitizers)
 #           Unreadable files are ommitted
-#           Temporary files (links) are written to /tmp. Thus this directory must exist
-#    Author: Jerome Vergne
-#    Email: jerome.vergne@unsitra.fr
+#    Authors: Jerome Vergne, Sebastien Bonaimé
+#    Email: jerome.vergne@unsitra.fr, bonaime@ipgp.fr
 #
 #------------------------------------------------------------------------------
 import os

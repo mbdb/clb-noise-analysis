@@ -10,7 +10,7 @@ Requirements:
 - dataless_file
 - path_data of the SDS structure where data is. Just modify the begining of the path and keep the end (/%year...) 
 
-2) Dayly data files needs to be in a SDS structure. If you don't have it already, you can use extract2sds.py to create it. This programm can at the same time change the station name, the locid, the network if the files. 
+2) Daily data files needs to be in a SDS structure. If you don't have it already, you can use extract2sds.py to create it. This programm can at the same time change the station name, the locid, the network if the files. 
 Ex:
 ``` code
 python extract2sds.py -f "Example/Raw_Data/VINC/*" -s VINC -n XX -l 00 -o Example/SDS/

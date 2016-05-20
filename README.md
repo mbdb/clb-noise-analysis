@@ -16,6 +16,7 @@ Ex:
 python extract2sds.py -f "Example/Raw_Data/VINC/*" -s VINC -n XX -l 00 -o Example/SDS/
 ````
 For each station you need a dataless file which could be created with PDCC (https://ds.iris.edu/ds/nodes/dmc/software/downloads/pdcc)
+
 3) To analyse the data:
 ``` code
 ./qc.py -s G.OBP.00

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #------------------------------------------------------------------------------
 # Filename: extract2sds.py
 #  Version: 1.3
@@ -10,6 +11,7 @@
 #
 #------------------------------------------------------------------------------
 import os
+from sys import exit
 import glob
 import argparse
 import numpy as np
@@ -29,7 +31,7 @@ argu_parser = argparse.ArgumentParser(
     informations are preserved. Directory''s name of the SDS is based \
     on these codes. ')
 argu_parser.add_argument("-f", "--files", required=True,
-                         help="File(s) to be read. If it contains wildcards\
+                         help="File(s) or directory to be read. If it contains wildcards\
                          (*,?,...), the string must be quoted. Example : python\
                           extract2sds.py -s TOTO -n XX \"../*HH?.*\"")
 argu_parser.add_argument("-c", "--channels", nargs='+', default=CHAN_default,
@@ -66,11 +68,22 @@ sta = args.station
 net = args.network
 locid = args.location
 
+if os.path.isfile(input_files):
+    #just one file
+    input_files_array = [input_files]
+elif os.path.isdir(input_files):
+    #directory
+    input_files_array = glob.glob(input_files + '/*')
+else:
+    #file list        
+    input_files_array = glob.glob(input_files)
+
 # ----------- END OF ARGUMENTS / PARAMETERS -------------------
+
 
 # read all files
 all_streams = Stream()
-for input_file in glob.glob(input_files):
+for input_file in input_files_array:
     print "Reading data from " + input_file
     all_streams += read(input_file, nearest_sample=False,
                         sourcename='*.[BHL][HL][ZNE]', details=True)

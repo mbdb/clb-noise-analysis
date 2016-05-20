@@ -2,9 +2,10 @@
 
 # clb-noise-analysis
 ``` code
+Fichiers de tests:
 wget http://www.ipgp.fr/~bonaime/Example.zip
 unzip Example.zip
-export PYTHONPATH=`pwd`
+
 ./qc.py -s G.OBP.00
 
 Pour extraire les données:

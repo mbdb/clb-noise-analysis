@@ -1,4 +1,6 @@
 
+INSTALL_REQUIRES
+* OBSPY 1.0.1
 
 # clb-noise-analysis
 ``` code

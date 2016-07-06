@@ -92,7 +92,7 @@ for input_file in input_files_array:
 min_startime = UTCDateTime(
     (np.min([f.stats.starttime for f in all_streams.traces])).timestamp // 86400 * 86400)
 max_startime = UTCDateTime((np.max(
-    [f.stats.starttime for f in all_streams.traces])).timestamp // 86400 * 86400 + 86400)
+    [f.stats.endtime for f in all_streams.traces])).timestamp // 86400 * 86400 + 86400)
 Days = np.arange(max(start, min_startime), min(max_startime, stop), 86400)
 
 # Process every days for each channel

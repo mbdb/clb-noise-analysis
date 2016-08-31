@@ -21,7 +21,10 @@ For each station you need a dataless file which could be created with PDCC (http
 ``` code
 ./qc.py -s G.OBP.00
 ````
-
+If the station does not have a locid you must use quotes:
+``` code
+./qc.py -s "G.OBP."
+````
 
 Example:
 You can download some files to test:

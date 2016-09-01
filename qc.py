@@ -974,8 +974,8 @@ def main():
     # avoid too long computations
     nb_max_traces = args.nb_max_traces
     # Output Paths
-    PATH_PKL = os.path.abspath(PATH_PKL)
-    PATH_PLT = os.path.abspath(PATH_PLT)
+    PATH_PKL = os.path.abspath(args.path_pkl)
+    PATH_PLT = os.path.abspath(args.path_plt)
 
     # ----------
 

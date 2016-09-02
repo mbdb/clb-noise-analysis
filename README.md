@@ -37,3 +37,8 @@ unzip Example.zip
 ```
 
 ![image](doc/XX.MEUD.00.HLZ.png)
+
+4) To plot a specific period of the data, you can use plot_qc.py class:
+``` code
+ ./plot_qc.py  -s BUFF -c BHZ -n XX -l 00 -b 2016-05-29 -e -b 2016-06-29
+``` 

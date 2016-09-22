@@ -1002,22 +1002,32 @@ def main():
                 print "No dataless found for " + net + "." + sta
             else:
                 print "Using dataless file : " + parser
-
         # Look for a PAZ
         paz = None
         try:
-            sismo = eval(str.lower(eval(sta)['sensor']))
-            acq = eval(str.lower(eval(sta)['digitizer']))
+            sismo = eval((eval(sta)['sensor'].lower()))
+            acq = eval((eval(sta)['digitizer'].lower()))
+        
         except:
             print "No PAZ found for " + net + "." + sta + "." + locid
         else:
-            print "PAZ from instruments.py"
             paz = {'gain': sismo['gain'],
                    'poles': sismo['poles'],
                    'zeros': sismo['zeros'],
                    'sensitivity': sismo['sensitivity'] / acq['lsb']}
-            print "PAZ from instruments.py"
+            print "PAZ from instruments.py: "
+            print paz
 
+        # exit if no parser nor paz
+        if parser ==  None and paz == None:
+            print "you must provide a dataless file or a sensor and a digitizer from instruments.py"
+            exit()
+
+        # exit if dataless AND paz are provided
+        if parser !=  None and paz != None:
+            print "you must provide a dataless file or a sensor and a digitizer from instruments.py but not both !"
+            exit() 
+            
         # Loop over channels
         for chan in chan_proc:
 

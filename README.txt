@@ -1,56 +1,44 @@
-0 - Installation
-----------------
-Pr-requis :
-- python (version 2.xx; pas test sous python 3)
-- obspy 1.0.1 (www.obspy.org)
 
-Dclarer la variable PYTHONPATH : 
-export PYTHONPATH=`pwd`
-Ou la mettre dans votre .bashrc
-
-1- Crer une nouvelle station dans le fichier station_dictionnary.py
+1- CrÂer une nouvelle station dans le fichier station_dictionnary.py
 --------------------------------------------------------------------
-C'est un dictionnaire python qui regroupe diffrentes informations utiles aux codes pour chaque station. 
+C'est un dictionnaire python qui regroupe diffÂrentes informations utiles aux codes pour chaque station. 
 Le mieux est de faire un copier/coller d'une station.
-Les cls obligatoires (c'est ˆ dire o l'information doit tre correcte) sont :
-- network : code rseau prsent dans les fichiers mseed
-- locid : location code prsent dans les fichiers mseed
-- channels : nom des channels devant tre traits (et prsents dans les fichiers mseed)
-- path_data : chemin gnrique vers les fichiers de donnes mseed (cf 2.2- chemin vers les donnes)
+Les clÂs obligatoires (c'est Âˆ dire oÂ l'information doit Âtre correcte) sont :
+- network : code rÂseau prÂsent dans les fichiers mseed
+- locid : location code prÂsent dans les fichiers mseed
+- channels : nom des channels devant Âtre traitÂs (et prÂsents dans les fichiers mseed)
+- path_data : chemin gÂnÂrique vers les fichiers de donnÂes mseed (cf 2.2- chemin vers les donnÂes)
 
-2- Prparation des donnes
+2- PrÂeparation des donnÂes
 --------------------------
 2.1 - Fichiers journaliers
 
-Le code ncessite des donnes au format mseed (a doit fonctionner avec d'autres formats) avec un fichier par jour dmarrant, si possible, ˆ une heure entire (c'est pas hyper critique).
-Si vous avez djˆ a : passer ˆ l'tape 2.2
-Sinon, vous pouvez utiliser le code "extract2sds.py" pour fabriquer des fichiers journaliers ˆ partir de donnes stockes dans un rpertoire et stocker le tout dans une structure de fichier "SDS". C'est surtout utile pour rapidement r-organiser des donnes "brutes" produites par un Q330 (aprs d-archivage via sdrsplit par exemple).
-C'est un clone (trs simplifi!) de qmerge. Il videmment est prfrable d'utiliser qmere ou msmod.
+Le code nÂcessite des donnÂes au format mseed (Âa doit fonctionner avec d'autres formats) avec un fichier par jour dÂmarrant, si possible, Âˆ une heure entiÂre (c'est pas hyper critique).
+Si vous avez dÂjÂˆ Âa : passer Âˆ l'Âtape 2.2
+Sinon, vous pouvez utiliser le code "extract2sds.py" pour fabriquer des fichiers journaliers Âˆ partir de donnÂes stockÂes dans un rÂpertoire et stocker le tout dans une structure de fichier "SDS". C'est surtout utile pour rapidement rÂ-organiser des donnÂes "brutes" produites par un Q330 (aprÂs dÂ-archivage via sdrsplit par exemple).
+C'est un clone (trÂs simplifiÂ!) de qmerge. Il Âvidemment est prÂfÂrable d'utiliser qmere ou msmod.
 Exemple :
 python extract2sds.py -f "/home/toto/RAW/NEUF/QT*" -s NEUF -n XX -l 00 -o "/home/toto/Data/"
 va :
--lire tous les fichiers dmarrant par QT dans le rpertoire /home/toto/RAW/NEUF
--extraire des fichiers journaliers de donnes et les mettre dans /home/toto/Data/201?/XX/NEUF/HH?.D/
--renommer (dans les header miniseed) la station en NEUF, le rseau en XX et le location code en 00
-Possibilit de restreindre l'extraction ˆ une priode de temps avec les options -b et -e (example -b 20120312 -e 20120315 extrait uniquement entre le 12 et 15 mars 2012)
+-lire tous les fichiers dÂmarrant par QT dans le rÂpertoire /home/toto/RAW/NEUF
+-extraire des fichiers journaliers de donnÂes et les mettre dans /home/toto/Data/201?/XX/NEUF/HH?.D/
+-renommer (dans les header miniseed) la station en NEUF, le rÂseau en XX et le location code en 00
+PossibilitÂe de restreindre l'extraction Âˆ une pÂriode de temps avec les options -b et -e (example -b 20120312 -e 20120315 extrait uniquement entre le 12 et 15 mars 2012)
 
-2.2 Dclaration du chemin vers les donnes mseed
+2.2 DÂeclaration du chemin vers les donnÂes mseed
 
-Dans le fichier station_dictionnary.py, remplir la cl 'path_data' avec le bon chemin et en utilisant les variables %(sta), %(chan), ... pour remplacer automatiquement les noms de station, channel, ...
-Exemple : Mes donnes sont dans un rpertoire du type /home/toto/Data/2012/XX/NEUF/HHZ.D/NEUF.XX.HHZ.00.D.2012.214
-Mettre dans 'path_data' : /home/toto/Data/%(year)s/%(net)s/%(sta)s/%(chan)s.D/*%(year)s.%(day)s.
-!!! attention au "s" (obligatoire)
-
-2.3 Rponse instrumentale
+Dans le fichier station_dictionnary.py, remplir la clÂe 'path_data' avec le bon chemin 
+2.3 RÂeponse instrumentale
 
 2.3.1 J'ai un fichier dataless
-C'est l'idal. Par contre la rponse doit y tre dfinie en radian/s (flag "B") et non pas en Hertz (flag "A") car obspy ne sait pas (encore) lire ce type de dataless.
-Indiquer simplement le chemin complet du dataless pour la cl 'dataless_file' de station_dictionnary.py 
+C'est l'idÂal. Par contre la rÂeponse doit y Âtre dÂefinie en radian/s (flag "B") et non pas en Hertz (flag "A") car obspy ne sait pas (encore) lire ce type de dataless.
+Indiquer simplement le chemin complet du dataless pour la clÂe 'dataless_file' de station_dictionnary.py 
 
 2.3.2 J'ai pas de fichier dataless
-C'est mal ... mais pas critique ! car vous connaissez au moins le type de numriseur et de capteur utilis (si pas esotrique).
-Dans ce cas remplissez les cls 'digitizer' et 'sensor' de station_dictionnary.py. Les rponses (poles/zeros/gains) correspondantes seront lues dans le dictionnaire/fichier instruments.py. Il faut donc utiliser des noms de 'digitizer' et 'sensor' qui existent dans instruments.py
-Rq : Seul le lsb des numriseurs sera utilis pour la dconvolution => rponse fausse proche de la frquence de Nyquist
+C'est mal ... mais pas critique ! car vous connaissez au moins le type de numÂeriseur et de capteur utilisÂe (si pas esotÂrique).
+Dans ce cas remplissez les clÂes 'digitizer' et 'sensor' de station_dictionnary.py. Les reÂponses (poles/zeros/gains) correspondantes seront lues dans le dictionnaire/fichier instruments.py.
+Il faut donc utiliser des noms de 'digitizer' et 'sensor' qui existent dans instruments.py
+Rq : Seul le lsb des numÂeriseurs sera utilisÂe pour la dÂeconvolution => rÂeponse fausse proche de la frÂequence de Nyquist
 
 (A VENIR : make_dataless_from_generic.py)
 
@@ -60,24 +48,24 @@ Rq : Seul le lsb des numriseurs sera utilis pour la dconvolution => rponse f
 Le code principale est run_qc_arg
 Dans le terminal taper run_qc_arg -h pour avoir toutes les options
 En gros ce code va :
-- lire les donnes ˆ partir des infos trouves dans station_dictionnary.py
-- Faire l'analyse de bruit via le module qc.py (clone de ppsd de obspy) pour des priodes de 7 jours (cf option -nb_days_pack)
-- Stocker les rsultats dans un fichier au format .pkl (pickle) dans le rpertoire PATH_PKL
-- Fabriquer la figure de synthse, au format png, dans le rpertoire PATH_PLT
+- lire les donnÂes Âˆ partir des infos trouvÂes dans station_dictionnary.py
+- Faire l'analyse de bruit via le module qc.py (clone de ppsd de obspy) pour des pÂriodes de 7 jours (cf option -nb_days_pack)
+- Stocker les rÂsultats dans un fichier au format .pkl (pickle) dans le rÂpertoire PATH_PKL
+- Fabriquer la figure de synthÂse, au format png, dans le rÂpertoire PATH_PLT
 Les noms des fichiers .pkl et .plt sont de la forme [network].[station].[location].[channel].{pkl,png}
-Les rpertoires par dfault pour ces fichiers (PATH_PKL et PATH_PLT) sont dfinis dans le fichier default_qc_path.py. Ils peuvent tre forcs via les options -pkl et -plt
+Les rÂpertoires par dÂfault pour ces fichiers (PATH_PKL et PATH_PLT) sont dÂfinis dans le fichier default_qc_path.py. Ils peuvent Âtre forcÂs via les options -pkl et -plt
 
-4. Re-gnration des figures
+4. Re-gÂenÂration des figures
 ----------------------------
-si vous voulez refaire les figures pour une priode de temps donne, avec ou sans la rprsentation des classes de sites, ... vous pouvez utiliser plot_qc.py
-Cela vite de retraiter (relire) toutes les donnes. Ce code va simplement lire un ensemble de fichier .pkl et utiliser les diffrents options de la mthode plot de laclasse QC
+si vous voulez refaire les figures pour une pÂriode de temps donnÂe, avec ou sans la rÂprÂsentation des classes de sites, ... vous pouvez utiliser plot_qc.py
+Cela Âvite de retraiter (relire) toutes les donnÂes. Ce code va simplement lire un ensemble de fichier .pkl et utiliser les diffÂrents options de la mÂthode plot de laclasse QC
 Exemple :
 python plot_qc.py -s ST1 ST2 -c HHZ -b 20130101 -e 20130115 -pkl /home/toto/PKL -nc
-Va regnrer les figures pour les composantes HHZ des stations ST1 et ST2, pendant la priode allant du 01/01/2013 au 15/01/2013, sans reprsenter les traits des classes A et B, ˆ partir des fichiers pkl correspondants prsents dans /home/toto/PKL. Les nouvelles figures png seront stockes dans le rpertoire courant (pas de vrification si le fichier existe djˆ)
+Va regÂnÂrer les figures pour les composantes HHZ des stations ST1 et ST2, pendant la pÂriode allant du 01/01/2013 au 15/01/2013, sans reprÂsenter les traits des classes A et B, Âˆ partir des fichiers pkl correspondants prÂsents dans /home/toto/PKL. Les nouvelles figures png seront stockÂes dans le rÂpertoire courant (pas de vÂrification si le fichier existe dÂjÂˆ)
 
 
 Example :
-Suite de commandes pour traiter la station OBP (donne dans Example) :
+Suite de commandes pour traiter la station OBP (donnÂe dans Example) :
 
 export PYTHONPATH=`pwd`
 
@@ -91,12 +79,12 @@ export PYTHONPATH=`pwd`
 
 5. Autres codes (experimental)
 ------------------------------
-qc_comp_2sta.py : Pour comparer 2 stations (ou 2 channels) sur un laps de temps donn
-qc_comp_2periods.py : Pour comparer une station/channel sur deux laps de temps donns
-qc_comp_to_ref.py : Pour effectuer un classement de stations sur un laps de temps donn en terme de niveau de bruit par rapport au NLNM dans plusieurs gammes de priodes dfinies. Permet galement d'afficher les sites repondant aux critres des classes A et B dans ces gammes de priode.
+qc_comp_2sta.py : Pour comparer 2 stations (ou 2 channels) sur un laps de temps donnÂ
+qc_comp_2periods.py : Pour comparer une station/channel sur deux laps de temps donnÂs
+qc_comp_to_ref.py : Pour effectuer un classement de stations sur un laps de temps donnÂ en terme de niveau de bruit par rapport au NLNM dans plusieurs gammes de pÂriodes dÂfinies. Permet Âgalement d'afficher les sites repondant aux critÂres des classes A et B dans ces gammes de pÂriode.
 
-RQ : Pour ces codes, il est ncessaire de modifier la partie "PARAMETERS" dans les programmes correspondants. Ils sont excutable dans l'environnement ipython
-TODO : Passer des arguments, gnraliser, vrifier, ...
+RQ : Pour ces codes, il est nÂcessaire de modifier la partie "PARAMETERS" dans les programmes correspondants. Ils sont exÂcutable dans l'environnement ipython
+TODO : Passer des arguments, gÂnÂraliser, vÂrifier, ...
 
 
 
@@ -108,3 +96,10 @@ modifier:
 acq=eval(str(eval(sta)['digitizer']).lower)
 sismo=eval(str(eval(sta)['sensor']).lower)
 
+
+./qc.py  -s BUFF10    -pkl ~/git/clb-noise-analysis/PKL/ -plt ~/git/clb-noise-analysis/PLT/  -b 2016201
+
+./qc.py  -s MEUD00 BUFF10   
+
+
+./plot_qc.py  -s BUFF -c BHZ -n XX -l 00 -pkl ~/git/clb-noise-analysis/PKL/ -plt ~/git/clb-noise-analysis/PLT/  -b 2016-07-23

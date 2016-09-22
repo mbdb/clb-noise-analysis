@@ -33,8 +33,9 @@ from obspy.signal.invsim import cosine_taper
 from obspy.signal.util import prev_pow_2
 from obspy.io.xseed import *
 from obspy.signal.spectral_estimation import get_nhnm, get_nlnm
-from station_dictionnary import *
 from instruments import *
+from station_dictionnary import *
+from IPython import embed
 
 MATPLOTLIB_VERSION = "Exist"
 
@@ -412,10 +413,10 @@ class QC(object):
             t2 = tr.stats.endtime
             while t1 + PPSD_LENGTH <= t2:
                 if self.__check_time_present(t1):
-                    msg = "Already covered time spans detected (e.g. %s), " + \
+                    msg = "Already computed time spans detected (e.g. %s), " + \
                           "skipping these slices."
                     msg = msg % t1
-                    warnings.warn(msg)
+                    print msg
                 else:
                     # throw warnings if trace length is different than one
                     # hour..!?!
@@ -938,9 +939,8 @@ def main():
     # Arguments
     argu_parser = argparse.ArgumentParser(
         description="Run the main code to compute quality sheets for a set of STATIONS")
-    argu_parser.add_argument("-s", "--stations", nargs='+', required=True,
-                             help="list of stations name. Stations must be in the station_dictionnary file. Separate STATIONS with spaces and dots between station name, network and location code. \
-                             ex: G.SSB.00")
+    argu_parser.add_argument("-s", "--stations", nargs='*', required=True,
+                             help='list of stations name Separate with spaces that must be in the station_dictionnary file ex: MEUD00 OBP10')
     argu_parser.add_argument("-b", "--starttime", default=UTCDateTime(2000, 1, 1), type=UTCDateTime,
                              help="Start time for processing. Various format accepted. Example : 2012,2,1 / 2012-02-01 / 2012,032 / 2012032 / etc ... See UTCDateTime for a complete list. Default is 2010-1-1")
     argu_parser.add_argument("-e", "--endtime", default=UTCDateTime(2055, 9, 16), type=UTCDateTime,
@@ -959,7 +959,7 @@ def main():
                              help="Use this option if you want don't want to use the dataless file specified in station_dictionnary. Only PAZ response computed from sensor and digitizer will be used. Use for debug only. Dataless recommended")
 
     args = argu_parser.parse_args()
-
+    
     # List of stations
     STA = args.stations
     chan_proc = args.channels
@@ -982,41 +982,41 @@ def main():
     Days = arange(start, stop, 86400)
 
     # Loop over stations
-    for sta in STA:
-        #net = eval(sta)['network']
-        #locid = eval(sta)['locid']
-        net,sta,locid = sta.split('.')
-        
+    for dict_station_name in STA:
+        net = eval(dict_station_name)['network']
+        sta = eval(dict_station_name)['station']
+        locid = eval(dict_station_name)['locid']
         # use only channels in station_dictionnay
         if isinstance(chan_proc, list):
-            chan_proc = intersect1d(chan_proc, eval(sta)['channels'])
+            chan_proc = np.intersect1d(chan_proc, eval(dict_station_name)['channels'])
         else:
-            chan_proc = eval(sta)['channels']
+            chan_proc = eval(dict_station_name)['channels']
 
         # Look for a DATALESS
         parser = None
         if not args.force_paz:
             try:
-                parser = glob.glob(eval(sta)['dataless_file'])[0]
+                parser = glob.glob(eval(dict_station_name)['dataless_file'])[0]
             except:
                 print "No dataless found for " + net + "." + sta
             else:
                 print "Using dataless file : " + parser
-        # Look for a PAZ
         paz = None
-        try:
-            sismo = eval((eval(sta)['sensor'].lower()))
-            acq = eval((eval(sta)['digitizer'].lower()))
-        
-        except:
-            print "No PAZ found for " + net + "." + sta + "." + locid
-        else:
-            paz = {'gain': sismo['gain'],
-                   'poles': sismo['poles'],
-                   'zeros': sismo['zeros'],
-                   'sensitivity': sismo['sensitivity'] / acq['lsb']}
-            print "PAZ from instruments.py: "
-            print paz
+        if parser == None:
+            # Look for a PAZ            
+            try:
+                sismo = eval((eval(dict_station_name)['sensor'].lower()))
+                acq = eval((eval(dict_station_name)['digitizer'].lower()))
+            
+            except:
+                print "No PAZ found for " + net + "." + sta + "." + locid
+            else:
+                paz = {'gain': sismo['gain'],
+                       'poles': sismo['poles'],
+                       'zeros': sismo['zeros'],
+                       'sensitivity': sismo['sensitivity'] / acq['lsb']}
+                print "PAZ from instruments.py: "
+                print paz
 
         # exit if no parser nor paz
         if parser ==  None and paz == None:
@@ -1052,7 +1052,10 @@ def main():
                 y_str = "%04d" % (d.year)
                 ID = {'sta': sta, 'locid': locid, 'net': net,
                       'chan': chan, 'year': y_str, 'day': d_str}
-                PATH_DATA = eval(sta)['path_data'] % ID
+                 
+                PATH_DATA = eval(dict_station_name)['path_data']+'/'+"%(year)s/%(net)s/%(sta)s/%(chan)s.D/%(sta)s.%(net)s.%(chan)s.%(locid)s.D.%(year)s.%(day)s"
+                PATH_DATA = PATH_DATA    % ID
+
                 # Read mseed files and stack them
                 try:
                     stream = read(PATH_DATA, starttime=start)
@@ -1061,6 +1064,7 @@ def main():
                 else:
                     print "reading " + PATH_DATA
                     nb_days_read += 1
+
                     # Initiate the QC
                     if is_pickle is False:
                         tr = stream[0]

@@ -122,7 +122,8 @@ for day in Days:
             if not os.path.exists(file_dir):
                 os.makedirs(file_dir)
             nameout = "%s/%s.%s.%s.%s.D.%04i.%03i" % (
-                file_dir, sta, net, day_channel, locid, t0.year, t0.julday)
+                #file_dir, sta, net, day_channel, locid, t0.year, t0.julday)
+                file_dir, net, sta, locid, day_channel, t0.year, t0.julday)
 
             print nameout
             print day_trace

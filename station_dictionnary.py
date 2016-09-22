@@ -18,7 +18,7 @@ OBP = {'network': 'G',
        'digitizer': 'Q330HR',
        'sensor': 'STS2',
        'dataless_file': 'Example/Dataless/OBP.dataless',
-       'path_data': 'Example/SDS/%(year)s/%(net)s/%(sta)s/%(chan)s.D/*.%(day)s'}
+       'path_data': 'Example/SDS/%(year)s/%(net)s/%(sta)s/%(chan)s.D/%(sta)s.%(net)s.%(chan)s.%(locid)s.D.%(year)s.%(day)s'}
 
 
 MEUD = {'network': 'XX',
@@ -26,4 +26,4 @@ MEUD = {'network': 'XX',
         'locid': '00',
         'digitizer': 'Q330', 'sensor': 'T120',
         'dataless_file': 'Example/Dataless/MEUD_XX.dataless',
-        'path_data': 'Example/SDS/%(year)s/%(net)s/%(sta)s/%(chan)s.D/*.%(day)s'}
+        'path_data': 'Example/SDS/%(year)s/%(net)s/%(sta)s/%(chan)s.D/%(sta)s.%(net)s.%(chan)s.%(locid)s.D.%(year)s.%(day)s'}

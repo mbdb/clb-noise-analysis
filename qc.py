@@ -26,6 +26,7 @@ import matplotlib.dates as mdates
 #from obspy.core import *
 from obspy import read
 from obspy.core import Trace, Stream, UTCDateTime
+from obspy.clients.filesystem.sds import Client
 #from obspy.core.util import MATPLOTLIB_VERSION
 from obspy.signal.filter import bandpass
 from obspy.signal.trigger import recursive_sta_lta, trigger_onset
@@ -35,7 +36,6 @@ from obspy.io.xseed import *
 from obspy.signal.spectral_estimation import get_nhnm, get_nlnm
 from instruments import *
 from station_dictionnary import *
-from IPython import embed
 
 MATPLOTLIB_VERSION = "Exist"
 
@@ -1043,72 +1043,54 @@ def main():
             else:
                 print "Use the pickle file : " + filename_pkl
                 is_pickle = True
-
+            sds_client = Client(eval(dict_station_name)['path_data'])
             # Loop over days
+          
+            ID = {'sta': sta, 'locid': locid, 'net': net,
+                  'chan': chan, 'year': y_str, 'day': d_str}
+             
+            
+            print "Reading from SDS archive"
+            all_streams = sds_client.get_waveforms(net, sta, locid, chan, start, stop)
+             
+            # Initiate the QC
+            if is_pickle is False:
+                tr = stream[0]
+                S = QC(tr.stats, parser=parser,
+                       paz=paz, skip_on_gaps=True)
+                is_pickle = True
+        
+            # Remove the minutes before the next hour (useful when
+            # computing statistics per hour)
+            # mst = min start time
+            mst = min([temp.stats.starttime for temp in all_streams])
+            mst = UTCDateTime(mst.year, mst.month,
+                              mst.day, mst.hour, 0, 0) + 3600.
+            all_streams.trim(starttime=mst, nearest_sample=False)
+            # Trim to stop when asked
+            all_streams.trim(endtime=stop)
+            # Add traces to S
+            if len(all_streams.traces) < nb_max_traces:
+                S.add(all_streams)
+
             nb_days_read = 0
             all_streams = None
-            for d in Days:
-                d_str = "%03d" % (d.julday)
-                y_str = "%04d" % (d.year)
-                ID = {'sta': sta, 'locid': locid, 'net': net,
-                      'chan': chan, 'year': y_str, 'day': d_str}
-                 
-                PATH_DATA = eval(dict_station_name)['path_data']+'/'+"%(year)s/%(net)s/%(sta)s/%(chan)s.D/%(sta)s.%(net)s.%(chan)s.%(locid)s.D.%(year)s.%(day)s"
-                PATH_DATA = PATH_DATA    % ID
 
-                # Read mseed files and stack them
-                try:
-                    stream = read(PATH_DATA, starttime=start)
-                except:
-                    pass
-                else:
-                    print "reading " + PATH_DATA
-                    nb_days_read += 1
-
-                    # Initiate the QC
-                    if is_pickle is False:
-                        tr = stream[0]
-                        S = QC(tr.stats, parser=parser,
-                               paz=paz, skip_on_gaps=True)
-                        is_pickle = True
-                    # Add traces
-                    if nb_days_read == 1:
-                        all_streams = stream
-                    else:
-                        all_streams += stream
-
-                if ((nb_days_read >= nb_days_pack) or (d == Days[-1])) and all_streams:
-                    # Remove the minutes before the next hour (useful when
-                    # computing statistics per hour)
-                    # mst = min start time
-                    mst = min([temp.stats.starttime for temp in all_streams])
-                    mst = UTCDateTime(mst.year, mst.month,
-                                      mst.day, mst.hour, 0, 0) + 3600.
-                    all_streams.trim(starttime=mst, nearest_sample=False)
-                    # Trim to stop when asked
-                    all_streams.trim(endtime=stop)
-                    # Add traces to S
-                    if len(all_streams.traces) < nb_max_traces:
-                        S.add(all_streams)
-
-                    nb_days_read = 0
-                    all_streams = None
-
-                    # save
-                    # This can be 2 levels below to save a little bit of time
-                    # (save and loading)
-                    if is_pickle:
-                        print filename_pkl
-                        S.save(filename_pkl)
-                        print filename_pkl + " updated"
-                    else:
-                        print "!!!!! Nothing saved/created for  " + net + "." + sta + "." + locid
-                    # Plot
-                    if is_pickle and len(S.times_used) > 0:
-                        filename_plt = PATH_PLT + '/' + net + "." + \
-                            sta + "." + locid + "." + chan + ".png"
-                        S.plot(filename=filename_plt, show_percentiles=True)
-                        print filename_plt + " updated"
+            # save
+            # This can be 2 levels below to save a little bit of time
+            # (save and loading)
+            if is_pickle:
+                print filename_pkl
+                S.save(filename_pkl)
+                print filename_pkl + " updated"
+            else:
+                print "!!!!! Nothing saved/created for  " + net + "." + sta + "." + locid
+            # Plot
+            if is_pickle and len(S.times_used) > 0:
+                filename_plt = PATH_PLT + '/' + net + "." + \
+                    sta + "." + locid + "." + chan + ".png"
+                S.plot(filename=filename_plt, show_percentiles=True)
+                print filename_plt + " updated"
 
 
 if __name__ == '__main__':

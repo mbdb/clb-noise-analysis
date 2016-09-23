@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#------------------------------------------------------------------------------
-# Filename: extract2sds.py
-#  Version: 1.3
-#  Purpose: Convert seismic data into 1 day long segments starting at time 00h00min00s and store them into a Standard Data Structure (SDS)
-#     Note: Input data must be in format readable with obspy (works for mseed,sac, ... as well as raw data from Quanterra digitizers)
-#           Unreadable files are ommitted
-#    Authors: Jerome Vergne, Sebastien Bonaimé
-#    Email: jerome.vergne@unsitra.fr, bonaime@ipgp.fr
+
+
+#   Filename: extract2sds.py
+#   Version: 1.3
+#   Purpose: Convert seismic data into 1 day long segments starting at time
+#   00h00min00s and store them into a Standard Data Structure (SDS)
+#   Note: Input data must be in format readable with obspy (works for mseed,sac
+#   , ... as well as raw data from Quanterra digitizers) Unreadable files are ommitted
+#   Authors: Jerome Vergne, Sebastien Bonaimé
+#   Email: jerome.vergne@unsitra.fr, bonaime@ipgp.fr
 #
-#------------------------------------------------------------------------------
+
 import os
-from sys import exit
 import glob
 import argparse
 import numpy as np
@@ -49,12 +50,14 @@ argu_parser.add_argument("-e", "--endtime", default=UTCDateTime(2099, 1, 1), typ
                          . Example : 2012,2,1 / 2012-02-01 / 2012,032 / 2012032\
                           / etc ... See UTCDateTime for a complete list.\
                            Default is 2015-1-1")
-argu_parser.add_argument("-s", "--station", help="set station code")
-argu_parser.add_argument("-n", "--network", help="set network code")
 argu_parser.add_argument(
-    "-l", "--location", help="set location code. \"\" if none ")
+    "-s", "--station", help="set new station code", default=None)
+argu_parser.add_argument(
+    "-n", "--network", help="set new network code", default=None)
+argu_parser.add_argument(
+    "-l", "--location", help="set new location code. \"\" if none ", default=None)
 argu_parser.add_argument("-o", "--path_sds", default=PATH_SDS, help="Base\
- directory for the SDS. Default is " +PATH_SDS + " (default path can be \
+ directory for the SDS. Default is " + PATH_SDS + " (default path can be \
  modified in default_qc_path)")
 
 args = argu_parser.parse_args()
@@ -64,18 +67,18 @@ PATH_SDS = args.path_sds + "/"
 input_files = args.files
 CHAN = args.channels
 
-sta = args.station
-net = args.network
-locid = args.location
+new_station_name = args.station
+new_network = args.network
+new_locid = args.location
 
 if os.path.isfile(input_files):
-    #just one file
+    # just one file
     input_files_array = [input_files]
 elif os.path.isdir(input_files):
-    #directory
+    # directory
     input_files_array = glob.glob(input_files + '/*')
 else:
-    #file list        
+    # file list
     input_files_array = glob.glob(input_files)
 
 # ----------- END OF ARGUMENTS / PARAMETERS -------------------
@@ -104,25 +107,26 @@ for day in Days:
         day_stream.merge(fill_value="latest")
         # change ID info
         for day_trace in day_stream:
-            if sta:
-                day_trace.stats.station = sta
-            else:
-                sta = day_trace.stats.station
-            if net:
-                day_trace.stats.network = net
-            else:
-                net = day_trace.stats.network
-            if locid:
-                day_trace.stats.location = locid
-            else:
-                locid = day_trace.stats.location
+
+            # Change station name /network / locid
+            if new_station_name:
+                day_trace.stats.station = new_station_name
+            if new_network:
+                day_trace.stats.network = new_network
+            if new_locid:
+                day_trace.stats.location = new_locid
+
+            sta = day_trace.stats.station
+            net = day_trace.stats.network
+            locid = day_trace.stats.location
+
             t0 = day_trace.stats.starttime
             file_dir = PATH_SDS + str(t0.year) + '/' + \
                 net + '/' + sta + '/' + day_channel + '.D'
             if not os.path.exists(file_dir):
                 os.makedirs(file_dir)
             nameout = "%s/%s.%s.%s.%s.D.%04i.%03i" % (
-                #file_dir, sta, net, day_channel, locid, t0.year, t0.julday)
+                # file_dir, sta, net, day_channel, locid, t0.year, t0.julday)
                 file_dir, net, sta, locid, day_channel, t0.year, t0.julday)
 
             print nameout

@@ -31,11 +31,10 @@ from obspy.signal.filter import bandpass
 from obspy.signal.trigger import recursive_sta_lta, trigger_onset
 from obspy.signal.invsim import cosine_taper
 from obspy.signal.util import prev_pow_2
-from obspy.io.xseed import *
+from obspy.io.xseed import Parser
 from obspy.signal.spectral_estimation import get_nhnm, get_nlnm
 from instruments import *
-from station_dictionnary_seb import *
-from IPython import embed
+from station_dictionnary import *
 
 MATPLOTLIB_VERSION = "Exist"
 
@@ -52,9 +51,11 @@ if MATPLOTLIB_VERSION is None:
     # kwargs although matplotlib might not be present and the routines
     # therefore not usable
 
-    def detrend_none(): pass
+    def detrend_none():
+        pass
 
-    def window_hanning(): pass
+    def window_hanning():
+        pass
 else:
     # Import matplotlib routines. These are no official dependency of
     # obspy.signal so an import error should really only be raised if any
@@ -154,7 +155,6 @@ def fft_taper(data):
     Cosine taper, 10 percent at each end.
     """
     data *= cosine_taper(len(data), 0.2)
-    cosine_taper
     return data
 
 
@@ -380,8 +380,7 @@ class QC(object):
             self.times_used, utcdatetime + PPSD_LENGTH)
         if index1 != index2:
             return True
-        else:
-            return False
+        return False
 
     def add(self, stream, verbose=True):
         """
@@ -586,10 +585,8 @@ class QC(object):
         """
         Returns the mean psd in the per_lim and time_lim range
         """
-        bool_select_time = np.all([array(self.times_used) > time_lim[
-                                  0], array(self.times_used) < time_lim[1]], axis=0)
-        bool_select_per = np.all(
-            [self.per_octaves > per_lim[0], self.per_octaves < per_lim[1]], axis=0)
+        bool_select_time = np.all([array(self.times_used) > time_lim[0], array(self.times_used) < time_lim[1]], axis=0)
+        bool_select_per = np.all([self.per_octaves > per_lim[0], self.per_octaves < per_lim[1]], axis=0)
         mpsd = self.psd[bool_select_time, :]
         mpsd = mpsd[:, bool_select_per]
         return mpsd.mean(1)
@@ -598,8 +595,7 @@ class QC(object):
         """
         Returns the normalised ppsd in the time_lim range
         """
-        bool_select_time = np.all([array(self.times_used) > time_lim[
-                                  0], array(self.times_used) < time_lim[1]], axis=0)
+        bool_select_time = np.all([array(self.times_used) > time_lim[0], array(self.times_used) < time_lim[1]], axis=0)
 
         for i, l_psd in enumerate(self.psd[bool_select_time, :]):
             hist, xedges, yedges = np.histogram2d(
@@ -912,7 +908,7 @@ class QC(object):
         title = title % (self.id, starttime.date, endtime.date,
                          len(times_used))
         ax_ppsd.set_title(title)
-
+        # a=str(UTCDateTime().format_iris_web_service())
         plt.draw()
 
         if filename is not None:
@@ -953,10 +949,6 @@ def main():
                              help="output directory for pkl files. Default is " + PATH_PKL + " (defined in default_path_qc.py file) ")
     argu_parser.add_argument("-plt", "--path_plt", default=PATH_PLT,
                              help="output directory for plt files. Default is " + PATH_PLT + " (defined in default_path_qc.py file) ")
-    argu_parser.add_argument("-nb_days_pack", type=int, default="7",
-                             help="To avoid to load too much data : load NB_DAYS_PACK days before computing the psd+detection+plot. NB_DAYS_PACK should be strictly higher than 1 day. Default is 7 days")
-    argu_parser.add_argument("-nb_max_traces", type=int, default="100",
-                             help="Maximum number of traces by Stream after trimming. To avoid too long computations caused by too much gaps. Default is 100")
     argu_parser.add_argument("-force_paz", default=False, action='store_true',
                              help="Use this option if you want don't want to use the dataless file specified in station_dictionnary. Only PAZ response computed from sensor and digitizer will be used. Use for debug only. Dataless recommended")
 
@@ -968,28 +960,43 @@ def main():
     # Time span
     start = args.starttime
     stop = args.endtime
-    # Processing options
-    # To avoid to load too much data : load nb_days_pack days before computing
-    # the psd+detection
-    nb_days_pack = args.nb_days_pack
-    # Maximum number of traces by Stream (nb_days_pack long) afterter trim. To
-    # avoid too long computations
-    nb_max_traces = args.nb_max_traces
+
     # Output Paths
     PATH_PKL = os.path.abspath(args.path_pkl)
     PATH_PLT = os.path.abspath(args.path_plt)
 
     # ----------
 
-    Days = arange(start, stop, 86400)
+    # Check if all stations are in station_dictionnary
+    for dict_station_name in STA:
+        try:
+            dict_station_name
+        except:
+            print dict_station_name + " is not in station_dictionnary.py"
+            exit()
+        try:
+            eval(dict_station_name)['network']
+        except:
+            print dict_station_name + " does not have a network in station_dictionnary.py"
+            exit()
+        try:
+            eval(dict_station_name)['station']
+        except:
+            print dict_station_name + " does not have a station in station_dictionnary.py"
+            exit()
+        try:
+            eval(dict_station_name)['locid']
+        except:
+            print dict_station_name + " does not have a locid in station_dictionnary.py"
+            exit()
 
     # Loop over stations
     for dict_station_name in STA:
         net = eval(dict_station_name)['network']
         sta = eval(dict_station_name)['station']
         locid = eval(dict_station_name)['locid']
-        sds_path = eval(dict_station_name)['path_data']        
-        
+        sds_path = eval(dict_station_name)['path_data']
+
         # use only channels in station_dictionnay
         if isinstance(chan_proc, list):
             chan_proc = np.intersect1d(
@@ -1003,11 +1010,11 @@ def main():
             try:
                 parser = glob.glob(eval(dict_station_name)['dataless_file'])[0]
             except:
-                 print "No valid dataless found for " + net + "." + sta + "." + locid
+                print "No valid dataless found for " + net + "." + sta + "." + locid
             else:
                 print "Using dataless file : " + parser
         paz = None
-        if parser == None:
+        if parser is None:
             # Look for a PAZ
             try:
                 sismo = eval((eval(dict_station_name)['sensor'].lower()))
@@ -1024,15 +1031,15 @@ def main():
                 print paz
 
         # exit if no parser nor paz
-        if parser == None and paz == None:
+        if parser is None and paz is None:
             print "you must provide a dataless file or a sensor and a digitizer from instruments.py"
             exit()
 
         # exit if dataless AND paz are provided
-        if parser != None and paz != None:
+        if parser is not None and paz is not None:
             print "you must provide a dataless file or a sensor and a digitizer from instruments.py but not both !"
             exit()
-        print "SDS archive is"+str(sds_path)
+        print "SDS archive is" + str(sds_path)
 
         # Loop over channels
         for chan in chan_proc:
@@ -1049,18 +1056,17 @@ def main():
             else:
                 print "Use the pickle file : " + filename_pkl
                 is_pickle = True
-                
+
             sds_client = Client(sds_path)
 
-
-            print "Reading %s.%s.%s.%s in SDS archive from %s to %s"%(net,sta,locid,chan,start, stop)
+            print "Reading %s.%s.%s.%s in SDS archive from %s to %s" % (net, sta, locid, chan, start, stop)
             all_streams = sds_client.get_waveforms(
                 net, sta, locid, chan, start, stop)
 
-            if len(all_streams.traces)==0:
-                print "No data found for %s.%s.%s.%s in SDS archive from %s to %s"%(net,sta,locid,chan,start, stop)
+            if len(all_streams.traces) == 0:
+                print "No data found for %s.%s.%s.%s in SDS archive from %s to %s" % (net, sta, locid, chan, start, stop)
                 exit()
-                    
+
             print "Processing data"
             # Initiate the QC
             if is_pickle is False:
@@ -1077,10 +1083,9 @@ def main():
             all_streams.trim(starttime=mst, nearest_sample=False)
             # Trim to stop when asked
             all_streams.trim(endtime=stop)
-            # Add traces to S
-            if len(all_streams.traces) < nb_max_traces:
-                S.add(all_streams)
 
+            # Add all streams to QC
+            S.add(all_streams)
 
             # save
             # This can be 2 levels below to save a little bit of time
@@ -1095,7 +1100,8 @@ def main():
             if is_pickle and len(S.times_used) > 0:
                 filename_plt = PATH_PLT + '/' + net + "." + \
                     sta + "." + locid + "." + chan + ".png"
-                S.plot(filename=filename_plt, show_percentiles=True)
+                S.plot(filename=filename_plt, show_percentiles=True,
+                       starttime=start, endtime=stop)
                 print filename_plt + " updated"
 
 

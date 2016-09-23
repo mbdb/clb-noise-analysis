@@ -35,7 +35,6 @@ from obspy.io.xseed import *
 from obspy.signal.spectral_estimation import get_nhnm, get_nlnm
 from instruments import *
 from station_dictionnary import *
-from IPython import embed
 
 MATPLOTLIB_VERSION = "Exist"
 
@@ -966,6 +965,8 @@ def main():
     # Time span
     start = args.starttime
     stop = args.endtime
+    Days = arange(start, stop, 86400)
+
     # Processing options
     # To avoid to load too much data : load nb_days_pack days before computing
     # the psd+detection
@@ -979,7 +980,14 @@ def main():
 
     # ----------
 
-    Days = arange(start, stop, 86400)
+
+    #Check if all stations are in station_dictionnary
+    for dict_station_name in STA:
+        try:
+            dict_station_name
+        except:
+            print dict_station_name + " is not in station_dictionnary.py"
+            exit()
 
     # Loop over stations
     for dict_station_name in STA:

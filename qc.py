@@ -21,7 +21,7 @@ import argparse
 import glob
 from sys import stdout
 import numpy as np
-from pylab import arange, array,DateFormatter,transpose,colorbar,linspace,setp,zeros,size,ma,cm,NaN,vstack,hstack
+from pylab import arange, array, DateFormatter, transpose, colorbar, linspace, setp, zeros, size, ma, cm, NaN, vstack, hstack
 import matplotlib.dates as mdates
 #from obspy.core import *
 from obspy import read
@@ -586,7 +586,8 @@ class QC(object):
         """
         Returns the mean psd in the per_lim and time_lim range
         """
-        bool_select_time = np.all([array(self.times_used) > time_lim[0], array(self.times_used) < time_lim[1]], axis=0)
+        bool_select_time = np.all([array(self.times_used) > time_lim[
+                                  0], array(self.times_used) < time_lim[1]], axis=0)
         bool_select_per = np.all(
             [self.per_octaves > per_lim[0], self.per_octaves < per_lim[1]], axis=0)
         mpsd = self.psd[bool_select_time, :]
@@ -597,7 +598,8 @@ class QC(object):
         """
         Returns the normalised ppsd in the time_lim range
         """
-        bool_select_time = np.all([array(self.times_used) > time_lim[0], array(self.times_used) < time_lim[1]], axis=0)
+        bool_select_time = np.all([array(self.times_used) > time_lim[
+                                  0], array(self.times_used) < time_lim[1]], axis=0)
 
         for i, l_psd in enumerate(self.psd[bool_select_time, :]):
             hist, xedges, yedges = np.histogram2d(
@@ -959,7 +961,7 @@ def main():
                              help="Use this option if you want don't want to use the dataless file specified in station_dictionnary. Only PAZ response computed from sensor and digitizer will be used. Use for debug only. Dataless recommended")
 
     args = argu_parser.parse_args()
-    
+
     # List of stations
     STA = args.stations
     chan_proc = args.channels
@@ -988,7 +990,8 @@ def main():
         locid = eval(dict_station_name)['locid']
         # use only channels in station_dictionnay
         if isinstance(chan_proc, list):
-            chan_proc = np.intersect1d(chan_proc, eval(dict_station_name)['channels'])
+            chan_proc = np.intersect1d(
+                chan_proc, eval(dict_station_name)['channels'])
         else:
             chan_proc = eval(dict_station_name)['channels']
 
@@ -1003,11 +1006,11 @@ def main():
                 print "Using dataless file : " + parser
         paz = None
         if parser == None:
-            # Look for a PAZ            
+            # Look for a PAZ
             try:
                 sismo = eval((eval(dict_station_name)['sensor'].lower()))
                 acq = eval((eval(dict_station_name)['digitizer'].lower()))
-            
+
             except:
                 print "No PAZ found for " + net + "." + sta + "." + locid
             else:
@@ -1019,15 +1022,15 @@ def main():
                 print paz
 
         # exit if no parser nor paz
-        if parser ==  None and paz == None:
+        if parser == None and paz == None:
             print "you must provide a dataless file or a sensor and a digitizer from instruments.py"
             exit()
 
         # exit if dataless AND paz are provided
-        if parser !=  None and paz != None:
+        if parser != None and paz != None:
             print "you must provide a dataless file or a sensor and a digitizer from instruments.py but not both !"
-            exit() 
-            
+            exit()
+
         # Loop over channels
         for chan in chan_proc:
 
@@ -1045,21 +1048,21 @@ def main():
                 is_pickle = True
             sds_client = Client(eval(dict_station_name)['path_data'])
             # Loop over days
-          
+
             ID = {'sta': sta, 'locid': locid, 'net': net,
                   'chan': chan, 'year': y_str, 'day': d_str}
-             
-            
+
             print "Reading from SDS archive"
-            all_streams = sds_client.get_waveforms(net, sta, locid, chan, start, stop)
-             
+            all_streams = sds_client.get_waveforms(
+                net, sta, locid, chan, start, stop)
+
             # Initiate the QC
             if is_pickle is False:
                 tr = stream[0]
                 S = QC(tr.stats, parser=parser,
                        paz=paz, skip_on_gaps=True)
                 is_pickle = True
-        
+
             # Remove the minutes before the next hour (useful when
             # computing statistics per hour)
             # mst = min start time

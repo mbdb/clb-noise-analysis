@@ -1039,6 +1039,7 @@ def main():
         if parser is not None and paz is not None:
             print "you must provide a dataless file or a sensor and a digitizer from instruments.py but not both !"
             exit()
+            
         print "SDS archive is" + str(sds_path)
 
         # Loop over channels

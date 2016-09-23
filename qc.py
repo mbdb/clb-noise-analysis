@@ -24,7 +24,6 @@ import numpy as np
 from pylab import arange, array, DateFormatter, transpose, colorbar, linspace, setp, zeros, size, ma, cm, NaN, vstack, hstack
 import matplotlib.dates as mdates
 #from obspy.core import *
-from obspy import read
 from obspy.core import Trace, Stream, UTCDateTime
 from obspy.clients.filesystem.sds import Client
 #from obspy.core.util import MATPLOTLIB_VERSION
@@ -35,7 +34,8 @@ from obspy.signal.util import prev_pow_2
 from obspy.io.xseed import *
 from obspy.signal.spectral_estimation import get_nhnm, get_nlnm
 from instruments import *
-from station_dictionnary import *
+from station_dictionnary_seb import *
+from IPython import embed
 
 MATPLOTLIB_VERSION = "Exist"
 
@@ -988,6 +988,8 @@ def main():
         net = eval(dict_station_name)['network']
         sta = eval(dict_station_name)['station']
         locid = eval(dict_station_name)['locid']
+        sds_path = eval(dict_station_name)['path_data']        
+        
         # use only channels in station_dictionnay
         if isinstance(chan_proc, list):
             chan_proc = np.intersect1d(
@@ -1001,7 +1003,7 @@ def main():
             try:
                 parser = glob.glob(eval(dict_station_name)['dataless_file'])[0]
             except:
-                print "No dataless found for " + net + "." + sta
+                 print "No valid dataless found for " + net + "." + sta + "." + locid
             else:
                 print "Using dataless file : " + parser
         paz = None
@@ -1030,6 +1032,7 @@ def main():
         if parser != None and paz != None:
             print "you must provide a dataless file or a sensor and a digitizer from instruments.py but not both !"
             exit()
+        print "SDS archive is"+str(sds_path)
 
         # Loop over channels
         for chan in chan_proc:
@@ -1046,20 +1049,22 @@ def main():
             else:
                 print "Use the pickle file : " + filename_pkl
                 is_pickle = True
-            sds_client = Client(eval(dict_station_name)['path_data'])
-            # Loop over days
+                
+            sds_client = Client(sds_path)
 
-            ID = {'sta': sta, 'locid': locid, 'net': net,
-                  'chan': chan, 'year': y_str, 'day': d_str}
 
-            print "Reading from SDS archive"
+            print "Reading %s.%s.%s.%s in SDS archive from %s to %s"%(net,sta,locid,chan,start, stop)
             all_streams = sds_client.get_waveforms(
                 net, sta, locid, chan, start, stop)
 
+            if len(all_streams.traces)==0:
+                print "No data found for %s.%s.%s.%s in SDS archive from %s to %s"%(net,sta,locid,chan,start, stop)
+                exit()
+                    
+            print "Processing data"
             # Initiate the QC
             if is_pickle is False:
-                tr = stream[0]
-                S = QC(tr.stats, parser=parser,
+                S = QC(all_streams[0].stats, parser=parser,
                        paz=paz, skip_on_gaps=True)
                 is_pickle = True
 
@@ -1076,8 +1081,6 @@ def main():
             if len(all_streams.traces) < nb_max_traces:
                 S.add(all_streams)
 
-            nb_days_read = 0
-            all_streams = None
 
             # save
             # This can be 2 levels below to save a little bit of time

@@ -988,6 +988,22 @@ def main():
         except:
             print dict_station_name + " is not in station_dictionnary.py"
             exit()
+        try:
+            eval(dict_station_name)['network']
+        except:
+            print dict_station_name + " does not have a network in station_dictionnary.py"
+            exit()    
+        try:
+            eval(dict_station_name)['station']
+        except:
+            print dict_station_name + " does not have a station in station_dictionnary.py"
+            exit()    
+        try:
+            eval(dict_station_name)['locid']
+        except:
+            print dict_station_name + " does not have a locid in station_dictionnary.py"
+            exit()    
+        
 
     # Loop over stations
     for dict_station_name in STA:

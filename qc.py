@@ -1077,13 +1077,21 @@ def main():
 
             # Remove the minutes before the next hour (useful when
             # computing statistics per hour)
-            # mst = min start time
+            #mst = min start time
             mst = min([temp.stats.starttime for temp in all_streams])
             mst = UTCDateTime(mst.year, mst.month,
                               mst.day, mst.hour, 0, 0) + 3600.
             all_streams.trim(starttime=mst, nearest_sample=False)
-            # Trim to stop when asked
+            
+            #Trim to stop when asked
             all_streams.trim(endtime=stop)
+            
+            # Remove the minutes after the last hour (useful when
+            # computing statistics per hour)
+            #met = max end time
+            met = max([temp.stats.endtime for temp in all_streams])
+            met = UTCDateTime(met.year, met.month, met.day, met.hour, 0, 0)
+            all_streams.trim(endtime=met, nearest_sample=False)
 
             # Add all streams to QC
             S.add(all_streams)

@@ -4,8 +4,8 @@
 #  Version: 1.0
 #  Purpose: 	Clone of psd.py from obspy to estimate the quality of a site
 #		by computing the spectrogram, PPSD and number of detections per hour
-#   Author: Jerome Vergne
-#    Email: jerome.vergne@unsitra.fr
+#   Author: Jerome Vergne, Bonaime Sebastien
+#    Email: jerome.vergne@unsitra.fr, bonaime@ipgp.fr
 #
 #------------------------------------------------------------------------------
 """
@@ -13,14 +13,13 @@ Various Routines Related to Spectral Estimation
 """
 from __future__ import with_statement
 import os
-import sys
 import warnings
 import cPickle
 import math
 import bisect
 import argparse
 import glob
-from sys import stdout
+from sys import stdout,exit
 import numpy as np
 from pylab import arange, array, DateFormatter, transpose, colorbar, linspace, setp, zeros, size, ma, cm, NaN, vstack, hstack
 import matplotlib.dates as mdates
@@ -35,7 +34,7 @@ from obspy.signal.util import prev_pow_2
 from obspy.io.xseed import Parser
 from obspy.signal.spectral_estimation import get_nhnm, get_nlnm
 from instruments import *
-from station_dictionnary import *
+from station_dictionnary_seb import *
 
 MATPLOTLIB_VERSION = "Exist"
 
@@ -237,7 +236,7 @@ class QC(object):
         if MATPLOTLIB_VERSION is None:
             raise ImportError(msg_matplotlib_ImportError)
 
-        if paz is not None and parser is not None:
+        if paz is not None and dataless is not None:
             msg = "Both paz and parser specified. Using parser object for " \
                   "metadata."
             warnings.warn(msg)
@@ -254,6 +253,7 @@ class QC(object):
         # set paz either from kwarg or try to get it from stats
         self.paz = paz
         self.dataless = dataless
+        self.parser = Parser(dataless)
         if skip_on_gaps:
             self.merge_method = -1
         else:
@@ -458,9 +458,8 @@ class QC(object):
             pass
 
         # get instrument response preferably from parser object
-        P = Parser(self.dataless,strict=False)
         try:
-            paz = P.get_paz(self.id, datetime=tr.stats.starttime)
+            paz = self.parser.get_paz(self.id, datetime=tr.stats.starttime)
         except Exception, e:
             if self.dataless is not None:
                 msg = "Error getting response from dataless:\n%s: %s\n" \
@@ -597,8 +596,7 @@ class QC(object):
         bool_select_time = np.all([array(self.times_used) > time_lim[0], array(self.times_used) < time_lim[1]], axis=0)
 
         for i, l_psd in enumerate(self.psd[bool_select_time, :]):
-            hist, xedges, yedges = np.histogram2d(
-                self.per_octaves, l_psd, bins=(self.period_bins, self.spec_bins))
+            hist, xedges, yedges = np.histogram2d(self.per_octaves, l_psd, bins=(self.period_bins, self.spec_bins))
             try:
                 hist_stack += hist
             except:
@@ -931,7 +929,6 @@ def get_class():
 
 def main():
 
-
     # Arguments
     argu_parser = argparse.ArgumentParser(
         description="Run the main code to compute quality sheets for a set of STATIONS")
@@ -962,61 +959,58 @@ def main():
     # Output Paths
     PATH_PKL = os.path.abspath(args.path_pkl)
     PATH_PLT = os.path.abspath(args.path_plt)
-    
-    #Create PKL and PLT directory if they don't exist
 
-    
+    # Create PKL and PLT directory if they don't exist
+
     if not os.path.exists(PATH_PKL):
         os.makedirs(PATH_PKL)
-    
+
     if not os.path.exists(PATH_PLT):
         os.makedirs(PATH_PLT)
-    
-    
-    
+
     # ----------
 
-    #Check if all stations are in station_dictionnary
+    # Check if all stations are in station_dictionnary
 
     for dict_station_name in STA:
         try:
             dict_station_name
         except:
             print dict_station_name + " is not in station_dictionnary.py"
-            sys.exit()
+            exit()
 
         try:
             eval(dict_station_name)['network']
         except:
             print dict_station_name + " does not have a network in station_dictionnary.py"
-            sys.exit() 
+            exit()
 
         try:
             eval(dict_station_name)['station']
         except:
             print dict_station_name + " does not have a station in station_dictionnary.py"
-            sys.exit()
+            exit()
         try:
             eval(dict_station_name)['locid']
         except:
             print dict_station_name + " does not have a locid in station_dictionnary.py"
-            sys.exit()
-        
+            exit()
+
         if not os.path.isfile(eval(dict_station_name)['dataless_file']):
             print dict_station_name + " does not have a valid dataless_file in station_dictionnary.py :"
-            print eval(dict_station_name)['dataless_file']+ ' does not exist'
-            sys.exit()
+            print eval(dict_station_name)['dataless_file'] + ' does not exist'
+            exit()
 
         try:
             eval(dict_station_name)['path_data']
         except:
             print dict_station_name + " does not have a path_data in station_dictionnary.py"
-            sys.exit()
+            exit()
 
         if not os.path.exists(eval(dict_station_name)['path_data']):
             print dict_station_name + " does not have a valid path_data in station_dictionnary.py :"
-            print eval(dict_station_name)['path_data']+ ' does not exist'
-            sys.exit()
+            print eval(dict_station_name)['path_data'] + ' does not exist'
+            exit()
 
     # Loop over stations
     for dict_station_name in STA:
@@ -1067,7 +1061,7 @@ def main():
         if dataless is not None and paz is not None:
             print "you must provide a dataless file or a sensor and a digitizer from instruments.py but not both !"
             exit()
-            
+
         print "SDS archive is " + str(sds_path)
 
         # Loop over channels
@@ -1105,18 +1099,18 @@ def main():
 
             # Remove the minutes before the next hour (useful when
             # computing statistics per hour)
-            #mst = min start time
+            # mst = min start time
             mst = min([temp.stats.starttime for temp in all_streams])
             mst = UTCDateTime(mst.year, mst.month,
                               mst.day, mst.hour, 0, 0) + 3600.
             all_streams.trim(starttime=mst, nearest_sample=False)
-            
-            #Trim to stop when asked
+
+            # Trim to stop when asked
             all_streams.trim(endtime=stop)
-            
+
             # Remove the minutes after the last hour (useful when
             # computing statistics per hour)
-            #met = max end time
+            # met = max end time
             met = max([temp.stats.endtime for temp in all_streams])
             met = UTCDateTime(met.year, met.month, met.day, met.hour, 0, 0)
             all_streams.trim(endtime=met, nearest_sample=False)

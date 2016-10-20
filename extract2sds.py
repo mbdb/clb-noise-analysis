@@ -19,7 +19,6 @@ import numpy as np
 from obspy.core import read
 from obspy import Stream
 from obspy import UTCDateTime
-from default_qc_path import PATH_SDS
 
 
 # ----------- ARGUMENTS  / PARAMETERS --------------------------
@@ -50,20 +49,21 @@ argu_parser.add_argument("-e", "--endtime", default=UTCDateTime(2099, 1, 1), typ
                          . Example : 2012,2,1 / 2012-02-01 / 2012,032 / 2012032\
                           / etc ... See UTCDateTime for a complete list.\
                            Default is 2015-1-1")
-argu_parser.add_argument(
-    "-s", "--station", help="set new station code", default=None)
-argu_parser.add_argument(
-    "-n", "--network", help="set new network code", default=None)
-argu_parser.add_argument(
-    "-l", "--location", help="set new location code. \"\" if none ", default=None)
-argu_parser.add_argument("-o", "--path_sds", default=PATH_SDS, help="Base\
- directory for the SDS. Default is " + PATH_SDS + " (default path can be \
- modified in default_qc_path)")
+argu_parser.add_argument("-s", "--station", help="set new station code", default=None)
+argu_parser.add_argument("-n", "--network", help="set new network code", default=None)
+argu_parser.add_argument("-l", "--location", help="set new location code. \"\" if none ", default=None)
+argu_parser.add_argument("-o", "--path_sds", default='./SDS', help="Base\
+ directory for the SDS. Default is ./SDS ")
 
 args = argu_parser.parse_args()
 start = args.starttime
 stop = args.endtime
 PATH_SDS = args.path_sds + "/"
+PATH_SDS = os.path.abspath(PATH_SDS)
+# Create SDS directory if if doesn't exist
+if not os.path.exists(PATH_SDS):
+    os.makedirs(PATH_SDS)
+
 input_files = args.files
 CHAN = args.channels
 

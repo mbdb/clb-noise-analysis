@@ -13,6 +13,7 @@ Various Routines Related to Spectral Estimation
 """
 from __future__ import with_statement
 import os
+import sys
 import warnings
 import cPickle
 import math
@@ -200,7 +201,7 @@ class QC(object):
     for one combination of network/station/location/channel/sampling_rate.
     """
 
-    def __init__(self, stats, paz=None, parser=None, skip_on_gaps=False):
+    def __init__(self, stats, paz=None, dataless=None, skip_on_gaps=False):
         """
         Initialize the PPSD object setting all fixed information on the station
         that should not change afterwards to guarantee consistent spectral
@@ -208,10 +209,9 @@ class QC(object):
         The necessary instrument response information can be provided in two
         ways:
 
-        * Providing an `obspy.xseed` :class:`~obspy.xseed.parser.Parser`,
-          e.g. containing metadata from a Dataless SEED file. This is the safer
-          way but it might a bit slower because for every processed time
-          segment the response information is extracted from the parser.
+        * Providing a dataless file. This is the safer way but it might a bit 
+          slower because for every processed time segment the response 
+          information is extracted from the parser.
         * Providing a dictionary containing poles and zeros information. Be
           aware that this leads to wrong results if the instrument's response
           is changing with data added to the PPSD. Use with caution!
@@ -221,9 +221,8 @@ class QC(object):
         :type paz: dict (optional)
         :param paz: Response information of instrument. If not specified the
                 information is supposed to be present as stats.paz.
-        :type parser: :class:`obspy.xseed.parser.Parser` (optional)
-        :param parser: Parser instance with response information (e.g. read
-                from a Dataless SEED volume)
+        :type dataless: String (optional)
+        :param dataless: Dataless file  with response information 
         :type skip_on_gaps: Boolean (optional)
         :param skip_on_gaps: Determines whether time segments with gaps should
                 be skipped entirely. McNamara & Buland merge gappy
@@ -254,7 +253,7 @@ class QC(object):
         self.len = int(self.sampling_rate * PPSD_LENGTH)
         # set paz either from kwarg or try to get it from stats
         self.paz = paz
-        self.parser = parser
+        self.dataless = dataless
         if skip_on_gaps:
             self.merge_method = -1
         else:
@@ -459,12 +458,12 @@ class QC(object):
             pass
 
         # get instrument response preferably from parser object
-        P = Parser(self.parser)
+        P = Parser(self.dataless,strict=False)
         try:
             paz = P.get_paz(self.id, datetime=tr.stats.starttime)
         except Exception, e:
-            if self.parser is not None:
-                msg = "Error getting response from parser:\n%s: %s\n" \
+            if self.dataless is not None:
+                msg = "Error getting response from dataless:\n%s: %s\n" \
                       "Skipping time segment(s)."
                 msg = msg % (e.__class__.__name__, e.message)
                 warnings.warn(msg)
@@ -932,7 +931,6 @@ def get_class():
 
 def main():
 
-    from default_qc_path import PATH_PKL, PATH_PLT
 
     # Arguments
     argu_parser = argparse.ArgumentParser(
@@ -945,10 +943,10 @@ def main():
                              help="End time for processing. Various format accepted. Example : 2012,2,1 / 2012-02-01 / 2012,032 / 2012032 / etc ... See UTCDateTime for a complete list. Default is 2015-1-1")
     argu_parser.add_argument("-c", "--channels", nargs='+',
                              help="Process only CHANNELS. Do not use this option if you want to process all available channels indicated in station_dictionnary. Separate CHANNELS with spaces. No wildcard. Default is all channels")
-    argu_parser.add_argument("-pkl", "--path_pkl", default=PATH_PKL,
-                             help="output directory for pkl files. Default is " + PATH_PKL + " (defined in default_path_qc.py file) ")
-    argu_parser.add_argument("-plt", "--path_plt", default=PATH_PLT,
-                             help="output directory for plt files. Default is " + PATH_PLT + " (defined in default_path_qc.py file) ")
+    argu_parser.add_argument("-pkl", "--path_pkl", default='./PKL',
+                             help="output directory for pkl files. Default is ./PKL  ")
+    argu_parser.add_argument("-plt", "--path_plt", default='./PLT',
+                             help="output directory for plt files. Default is ./PLT ")
     argu_parser.add_argument("-force_paz", default=False, action='store_true',
                              help="Use this option if you want don't want to use the dataless file specified in station_dictionnary. Only PAZ response computed from sensor and digitizer will be used. Use for debug only. Dataless recommended")
 
@@ -964,7 +962,18 @@ def main():
     # Output Paths
     PATH_PKL = os.path.abspath(args.path_pkl)
     PATH_PLT = os.path.abspath(args.path_plt)
+    
+    #Create PKL and PLT directory if they don't exist
 
+    
+    if not os.path.exists(PATH_PKL):
+        os.makedirs(PATH_PKL)
+    
+    if not os.path.exists(PATH_PLT):
+        os.makedirs(PATH_PLT)
+    
+    
+    
     # ----------
 
     #Check if all stations are in station_dictionnary
@@ -974,23 +983,40 @@ def main():
             dict_station_name
         except:
             print dict_station_name + " is not in station_dictionnary.py"
-            exit()
+            sys.exit()
+
         try:
             eval(dict_station_name)['network']
         except:
             print dict_station_name + " does not have a network in station_dictionnary.py"
-            exit()    
+            sys.exit() 
 
         try:
             eval(dict_station_name)['station']
         except:
             print dict_station_name + " does not have a station in station_dictionnary.py"
-            exit()
+            sys.exit()
         try:
             eval(dict_station_name)['locid']
         except:
             print dict_station_name + " does not have a locid in station_dictionnary.py"
-            exit()
+            sys.exit()
+        
+        if not os.path.isfile(eval(dict_station_name)['dataless_file']):
+            print dict_station_name + " does not have a valid dataless_file in station_dictionnary.py :"
+            print eval(dict_station_name)['dataless_file']+ ' does not exist'
+            sys.exit()
+
+        try:
+            eval(dict_station_name)['path_data']
+        except:
+            print dict_station_name + " does not have a path_data in station_dictionnary.py"
+            sys.exit()
+
+        if not os.path.exists(eval(dict_station_name)['path_data']):
+            print dict_station_name + " does not have a valid path_data in station_dictionnary.py :"
+            print eval(dict_station_name)['path_data']+ ' does not exist'
+            sys.exit()
 
     # Loop over stations
     for dict_station_name in STA:
@@ -1007,16 +1033,16 @@ def main():
             chan_proc = eval(dict_station_name)['channels']
 
         # Look for a DATALESS
-        parser = None
+        dataless = None
         if not args.force_paz:
             try:
-                parser = glob.glob(eval(dict_station_name)['dataless_file'])[0]
+                dataless = glob.glob(eval(dict_station_name)['dataless_file'])[0]
             except:
                 print "No valid dataless found for " + net + "." + sta + "." + locid
             else:
-                print "Using dataless file : " + parser
+                print "Using dataless file : " + dataless
         paz = None
-        if parser is None:
+        if dataless is None:
             # Look for a PAZ
             try:
                 sismo = eval((eval(dict_station_name)['sensor'].lower()))
@@ -1032,17 +1058,17 @@ def main():
                 print "PAZ from instruments.py: "
                 print paz
 
-        # exit if no parser nor paz
-        if parser is None and paz is None:
+        # exit if no dataless nor paz
+        if dataless is None and paz is None:
             print "you must provide a dataless file or a sensor and a digitizer from instruments.py"
             exit()
 
         # exit if dataless AND paz are provided
-        if parser is not None and paz is not None:
+        if dataless is not None and paz is not None:
             print "you must provide a dataless file or a sensor and a digitizer from instruments.py but not both !"
             exit()
             
-        print "SDS archive is" + str(sds_path)
+        print "SDS archive is " + str(sds_path)
 
         # Loop over channels
         for chan in chan_proc:
@@ -1073,7 +1099,7 @@ def main():
             print "Processing data"
             # Initiate the QC
             if is_pickle is False:
-                S = QC(all_streams[0].stats, parser=parser,
+                S = QC(all_streams[0].stats, dataless=dataless,
                        paz=paz, skip_on_gaps=True)
                 is_pickle = True
 

@@ -34,7 +34,7 @@ from obspy.signal.util import prev_pow_2
 from obspy.io.xseed import Parser
 from obspy.signal.spectral_estimation import get_nhnm, get_nlnm
 from instruments import *
-from station_dictionnary_seb import *
+from station_dictionnary import *
 
 MATPLOTLIB_VERSION = "Exist"
 

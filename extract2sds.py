@@ -121,7 +121,7 @@ for day in Days:
             locid = day_trace.stats.location
 
             t0 = day_trace.stats.starttime
-            file_dir = PATH_SDS + str(t0.year) + '/' + \
+            file_dir = PATH_SDS +'/'+ str(t0.year) + '/' + \
                 net + '/' + sta + '/' + day_channel + '.D'
             if not os.path.exists(file_dir):
                 os.makedirs(file_dir)

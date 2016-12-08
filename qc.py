@@ -996,10 +996,15 @@ def main():
             print dict_station_name + " does not have a locid in station_dictionnary.py"
             exit()
 
-        if not os.path.isfile(eval(dict_station_name)['dataless_file']):
-            print dict_station_name + " does not have a valid dataless_file in station_dictionnary.py :"
-            print eval(dict_station_name)['dataless_file'] + ' does not exist'
-            exit()
+        try:
+            eval(dict_station_name)['dataless_file']
+            #if there is a dataless_file, check if the file exists
+            if not os.path.isfile(eval(dict_station_name)['dataless_file']):
+                print dict_station_name + " does not have a valid dataless_file in station_dictionnary.py :"
+                print eval(dict_station_name)['dataless_file'] + ' does not exist'
+                exit()
+        except:
+            pass
 
         try:
             eval(dict_station_name)['path_data']

@@ -43,5 +43,5 @@ unzip Example.zip
 
 4) To plot a specific period of the data, you can use plot_qc.py class:
 ``` code
- ./plot_qc.py  -s BUFF -c BHZ -n XX -l 00 -b 2016-05-29 -e -b 2016-06-29
+ ./plot_qc.py  -s BUFF -c BHZ -n XX -l 00 -b 2016-05-29 -e 2016-06-29
 ``` 

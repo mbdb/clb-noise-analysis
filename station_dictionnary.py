@@ -20,4 +20,6 @@ MEUD00 = { 'network': 'XX',
           'locid': '00',
           'channels': ['HLZ', 'HLN', 'HLE'],
           'dataless_file': 'Example/Dataless/MEUD_XX.dataless',
-          'path_data': 'Example/SDS'}
+          'path_data': 'Example/SDS',
+          'title_comment': r'cloche $\mu$-metal'
+}

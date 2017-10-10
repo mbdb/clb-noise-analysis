@@ -8,6 +8,8 @@
 #    Email: jerome.vergne@unsitra.fr, bonaime@ipgp.fr
 #
 #------------------------------------------------------------------------------
+# -*- coding: utf-8 -*-
+
 """
 Various Routines Related to Spectral Estimation
 """
@@ -19,9 +21,10 @@ import math
 import bisect
 import argparse
 import glob
-from sys import stdout,exit
+from sys import stdout, exit
 import numpy as np
-from pylab import arange, array, DateFormatter, transpose, colorbar, linspace, setp, zeros, size, ma, cm, NaN, vstack, hstack
+from pylab import arange, array, DateFormatter, transpose, colorbar, linspace,\
+setp, zeros, size, ma, cm, NaN, vstack, hstack
 import matplotlib.dates as mdates
 #from obspy.core import *
 from obspy.core import Trace, Stream, UTCDateTime
@@ -33,8 +36,11 @@ from obspy.signal.invsim import cosine_taper
 from obspy.signal.util import prev_pow_2
 from obspy.io.xseed import Parser
 from obspy.signal.spectral_estimation import get_nhnm, get_nlnm
+from obspy.imaging.cm import pqlx, get_cmap
+
 from instruments import *
 from station_dictionnary import *
+from IPython import embed
 
 MATPLOTLIB_VERSION = "Exist"
 
@@ -64,33 +70,10 @@ else:
     import matplotlib.pyplot as plt
     from matplotlib.dates import date2num
     from matplotlib.ticker import FormatStrFormatter
-    from matplotlib.colors import LinearSegmentedColormap
     from matplotlib.mlab import detrend_none, window_hanning
 
 # PSD PARAMTERS
 # -------------
-# build colormap as done in paper by mcnamara
-CDICT = {'red': ((0.0, 1.0, 1.0),
-                 (0.05, 1.0, 1.0),
-                 (0.2, 0.0, 0.0),
-                 (0.4, 0.0, 0.0),
-                 (0.6, 0.0, 0.0),
-                 (0.8, 1.0, 1.0),
-                 (1.0, 1.0, 1.0)),
-         'green': ((0.0, 1.0, 1.0),
-                   (0.05, 0.0, 0.0),
-                   (0.2, 0.0, 0.0),
-                   (0.4, 1.0, 1.0),
-                   (0.6, 1.0, 1.0),
-                   (0.8, 1.0, 1.0),
-                   (1.0, 0.0, 0.0)),
-         'blue': ((0.0, 1.0, 1.0),
-                  (0.05, 1.0, 1.0),
-                  (0.2, 1.0, 1.0),
-                  (0.4, 1.0, 1.0),
-                  (0.6, 0.0, 0.0),
-                  (0.8, 0.0, 0.0),
-                  (1.0, 0.0, 0.0))}
 
 CLASS_MODEL_FILE = os.path.join(os.path.dirname(__file__),
                                 "data", "class_models.npz")
@@ -112,6 +95,9 @@ DP_lta = 5.
 DP_max_len = 3.
 DP_thres_high = 2.5
 DP_thres_low = 2.0
+
+# CMAPS
+spectro_cmap = 'jet'
 
 
 def psd(x, NFFT=256, Fs=2, detrend=detrend_none, window=window_hanning, noverlap=0):
@@ -208,8 +194,8 @@ class QC(object):
         The necessary instrument response information can be provided in two
         ways:
 
-        * Providing a dataless file. This is the safer way but it might a bit 
-          slower because for every processed time segment the response 
+        * Providing a dataless file. This is the safer way but it might a bit
+          slower because for every processed time segment the response
           information is extracted from the parser.
         * Providing a dictionary containing poles and zeros information. Be
           aware that this leads to wrong results if the instrument's response
@@ -221,7 +207,7 @@ class QC(object):
         :param paz: Response information of instrument. If not specified the
                 information is supposed to be present as stats.paz.
         :type dataless: String (optional)
-        :param dataless: Dataless file  with response information 
+        :param dataless: Dataless file  with response information
         :type skip_on_gaps: Boolean (optional)
         :param skip_on_gaps: Determines whether time segments with gaps should
                 be skipped entirely. McNamara & Buland merge gappy
@@ -279,7 +265,6 @@ class QC(object):
         self.psd = []
         self.spikes = []
         self.__setup_bins()
-        self.colormap = LinearSegmentedColormap('mcnamara', CDICT, 1024)
 
     def __setup_bins(self):
         """
@@ -583,8 +568,10 @@ class QC(object):
         """
         Returns the mean psd in the per_lim and time_lim range
         """
-        bool_select_time = np.all([array(self.times_used) > time_lim[0], array(self.times_used) < time_lim[1]], axis=0)
-        bool_select_per = np.all([self.per_octaves > per_lim[0], self.per_octaves < per_lim[1]], axis=0)
+        bool_select_time = np.all([array(self.times_used) > time_lim[0],
+                                   array(self.times_used) < time_lim[1]], axis=0)
+        bool_select_per = np.all(
+            [self.per_octaves > per_lim[0], self.per_octaves < per_lim[1]], axis=0)
         mpsd = self.psd[bool_select_time, :]
         mpsd = mpsd[:, bool_select_per]
         return mpsd.mean(1)
@@ -593,10 +580,12 @@ class QC(object):
         """
         Returns the normalised ppsd in the time_lim range
         """
-        bool_select_time = np.all([array(self.times_used) > time_lim[0], array(self.times_used) < time_lim[1]], axis=0)
+        bool_select_time = np.all([array(self.times_used) > time_lim[0],
+                                   array(self.times_used) < time_lim[1]], axis=0)
 
         for i, l_psd in enumerate(self.psd[bool_select_time, :]):
-            hist, xedges, yedges = np.histogram2d(self.per_octaves, l_psd, bins=(self.period_bins, self.spec_bins))
+            hist, xedges, yedges = np.histogram2d(
+                self.per_octaves, l_psd, bins=(self.period_bins, self.spec_bins))
             try:
                 hist_stack += hist
             except:
@@ -616,10 +605,10 @@ class QC(object):
 
 
 # -------------------- P L O T -----------------------------------------
-    def plot(self, filename=None,
+    def plot(self, cmap, filename=None,
              starttime=T1, endtime=T2,
              show_percentiles=False, percentiles=[10, 50, 90],
-             show_class_models=True, grid=True):
+             show_class_models=True, grid=True, title_comment=False):
         """
         Plot the QC resume figure
         If a filename is specified the plot is saved to this file, otherwise
@@ -638,6 +627,8 @@ class QC(object):
         :param show_class_models: Enable/disable plotting of class models.
         :type grid: bool (optional)
         :param grid: Enable/disable grid in histogram plot.
+        :type cmap: cmap
+        :param cmap: Colormap for PPSD.
         """
 
         # COMMON PARAMETERS
@@ -728,7 +719,8 @@ class QC(object):
         t = date2num([a.datetime for a in times_used])
         f = 1. / self.per_octaves
         T, F = np.meshgrid(t, f)
-        spectro = ax_spectrogram.pcolormesh(T, F, transpose(psd))
+        spectro = ax_spectrogram.pcolormesh(
+            T, F, transpose(psd), cmap=spectro_cmap)
         spectro.set_clim(*psd_db_limits)
 
         cb = colorbar(spectro, cax=ax_col_spectrogram, orientation='horizontal', ticks=linspace(
@@ -866,7 +858,7 @@ class QC(object):
 
         # PPSD
         X, Y = np.meshgrid(self.xedges, self.yedges)
-        ppsd = ax_ppsd.pcolormesh(X, Y, hist_stack.T, cmap=self.colormap)
+        ppsd = ax_ppsd.pcolormesh(X, Y, hist_stack.T, cmap=cmap)
         cb = plt.colorbar(ppsd, ax=ax_ppsd)
         cb.set_label("PPSD [%]")
         color_limits = (0, 30)
@@ -904,6 +896,10 @@ class QC(object):
         title = "%s   %s -- %s  (%i segments)"
         title = title % (self.id, starttime.date, endtime.date,
                          len(times_used))
+        if title_comment:
+            fig.text(0.82, 0.978 , title_comment, bbox=dict(
+                facecolor='red', alpha=0.5), fontsize=15)
+
         ax_ppsd.set_title(title)
         # a=str(UTCDateTime().format_iris_web_service())
         plt.draw()
@@ -946,15 +942,30 @@ def main():
                              help="output directory for plt files. Default is ./PLT ")
     argu_parser.add_argument("-force_paz", default=False, action='store_true',
                              help="Use this option if you want don't want to use the dataless file specified in station_dictionnary. Only PAZ response computed from sensor and digitizer will be used. Use for debug only. Dataless recommended")
+    argu_parser.add_argument("--color_map", default='pqlx',
+                             help="Color map for PPSD. Default is pqlx")
 
     args = argu_parser.parse_args()
 
     # List of stations
     STA = args.stations
     chan_proc = args.channels
+
     # Time span
     start = args.starttime
     stop = args.endtime
+
+    # Color Map
+    if args.color_map == 'pqlx':
+        cmap = pqlx
+    elif args.color_map == 'viridis_white':
+        from obspy.imaging.cm import viridis_white
+        cmap = viridis_white
+    elif args.color_map == 'viridis_white_r':
+        from obspy.imaging.cm import viridis_white_r
+        cmap = viridis_white_r
+    else:
+        cmap = get_cmap(args.color_map)
 
     # Output Paths
     PATH_PKL = os.path.abspath(args.path_pkl)
@@ -998,7 +1009,7 @@ def main():
 
         try:
             eval(dict_station_name)['dataless_file']
-            #if there is a dataless_file, check if the file exists
+            # if there is a dataless_file, check if the file exists
             if not os.path.isfile(eval(dict_station_name)['dataless_file']):
                 print dict_station_name + " does not have a valid dataless_file in station_dictionnary.py :"
                 print eval(dict_station_name)['dataless_file'] + ' does not exist'
@@ -1024,6 +1035,12 @@ def main():
         locid = eval(dict_station_name)['locid']
         sds_path = eval(dict_station_name)['path_data']
 
+        try:
+            title_comment = eval(dict_station_name)['title_comment']
+        except:
+            title_comment = False
+            pass
+
         # use only channels in station_dictionnay
         if isinstance(chan_proc, list):
             chan_proc = np.intersect1d(
@@ -1035,7 +1052,8 @@ def main():
         dataless = None
         if not args.force_paz:
             try:
-                dataless = glob.glob(eval(dict_station_name)['dataless_file'])[0]
+                dataless = glob.glob(eval(dict_station_name)[
+                                     'dataless_file'])[0]
             except:
                 print "No valid dataless found for " + net + "." + sta + "." + locid
             else:
@@ -1136,8 +1154,8 @@ def main():
             if is_pickle and len(S.times_used) > 0:
                 filename_plt = PATH_PLT + '/' + net + "." + \
                     sta + "." + locid + "." + chan + ".png"
-                S.plot(filename=filename_plt, show_percentiles=True,
-                       starttime=start, endtime=stop)
+                S.plot(cmap=cmap, filename=filename_plt, show_percentiles=True,
+                       starttime=start, endtime=stop, title_comment=title_comment)
                 print filename_plt + " updated"
 
 

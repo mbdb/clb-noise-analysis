@@ -360,8 +360,7 @@ class QC(object):
         insert this piece of data.
         """
         index1 = bisect.bisect_left(self.times_used, utcdatetime)
-        index2 = bisect.bisect_right(
-            self.times_used, utcdatetime + PPSD_LENGTH)
+        index2 = bisect.bisect_right(self.times_used, utcdatetime + PPSD_LENGTH)
         if index1 != index2:
             return True
         return False
@@ -670,7 +669,7 @@ class QC(object):
         ax_col_spectrogram = fig.add_axes([0.76, 0.588, 0.20, 0.014])
         ax_col_spectrogramhour = fig.add_axes([0.76, 0.57, 0.20, 0.014])
 
-        # COVERAGE
+        ########################### COVERAGE
         ax_coverage.xaxis_date()
         ax_coverage.set_yticks([])
         # plot data coverage
@@ -704,17 +703,22 @@ class QC(object):
 
         # labels
         ax_coverage.xaxis.set_ticks_position('top')
+        ax_coverage.tick_params(direction='out')
+
         ax_coverage.xaxis.set_major_locator(mdates.AutoDateLocator())
         if Day_span > 5:
             ax_coverage.xaxis.set_major_formatter(DateFormatter('%D'))
         else:
             ax_coverage.xaxis.set_major_formatter(DateFormatter('%D-%Hh'))
+            for label in ax_coverage.get_xticklabels():
+                label.set_fontsize(10)
+
 
         for label in ax_coverage.get_xticklabels():
             label.set_ha("right")
-            label.set_rotation(-30)
+            label.set_rotation(-25)
 
-        # SPECTROGRAM
+        ########################### SPECTROGRAM
         ax_spectrogram.xaxis_date()
         t = date2num([a.datetime for a in times_used])
         f = 1. / self.per_octaves
@@ -723,14 +727,17 @@ class QC(object):
             T, F, transpose(psd), cmap=spectro_cmap)
         spectro.set_clim(*psd_db_limits)
 
-        cb = colorbar(spectro, cax=ax_col_spectrogram, orientation='horizontal', ticks=linspace(
-            psd_db_limits[0], psd_db_limits[1], 5), format='%i')
-        cb.set_label("dB")
-        cb.set_clim(*psd_db_limits)
-        cb.ax.xaxis.set_ticks_position('top')
-        cb.ax.xaxis.label.set_position((1.1, .2))
-        cb.ax.yaxis.label.set_horizontalalignment('left')
-        cb.ax.yaxis.label.set_verticalalignment('bottom')
+        spectrogram_colorbar = colorbar(spectro, cax=ax_col_spectrogram,
+                                        orientation='horizontal',
+                                        ticks=linspace(psd_db_limits[0],
+                                                       psd_db_limits[1], 5),
+                                        format='%i')
+        spectrogram_colorbar.set_label("dB")
+        spectrogram_colorbar.set_clim(*psd_db_limits)
+        spectrogram_colorbar.ax.xaxis.set_ticks_position('top')
+        spectrogram_colorbar.ax.xaxis.label.set_position((1.1, .2))
+        spectrogram_colorbar.ax.yaxis.label.set_horizontalalignment('left')
+        spectrogram_colorbar.ax.yaxis.label.set_verticalalignment('bottom')
 
         ax_spectrogram.grid(which="major")
         ax_spectrogram.semilogy()
@@ -742,7 +749,7 @@ class QC(object):
         ax_spectrogram.set_ylabel('Frequency [Hz]')
         ax_spectrogram.yaxis.set_label_coords(-0.08, 0.5)
 
-        # SPECTROGRAM PER HOUR
+        ########################### SPECTROGRAM PER HOUR
         #psdH=array([array(psd[HourUsed==h,:]).mean(axis=0) for h in Hour])
         psdH = zeros((size(Hour), size(self.per_octaves)))
         for i, h in enumerate(Hour):
@@ -756,9 +763,12 @@ class QC(object):
         spectroh = ax_spectrogramhour.pcolormesh(H24, F, psdH, cmap=cm.RdBu_r)
         spectroh.set_clim(-8, 8)
 
-        cb = colorbar(spectroh, cax=ax_col_spectrogramhour,
-                      orientation='horizontal', ticks=linspace(-8, 8, 5), format='%i')
-        cb.set_clim(-8, 8)
+        spectrogram_per_hour_colorbar = colorbar(spectroh,
+                                                 cax=ax_col_spectrogramhour,
+                                                 orientation='horizontal',
+                                                 ticks=linspace(-8, 8, 5),
+                                                 format='%i')
+        spectrogram_per_hour_colorbar.set_clim(-8, 8)
 
         ax_spectrogramhour.semilogy()
         ax_spectrogramhour.set_xlim((0, 23))
@@ -770,7 +780,7 @@ class QC(object):
         ax_spectrogramhour.yaxis.grid(True)
         ax_spectrogramhour.xaxis.grid(False)
 
-        # PSD BY PERIOD RANGE
+        ########################### PSD BY PERIOD RANGE
         t = date2num([a.datetime for a in times_used])
         ax_freqpsd.xaxis_date()
         for pp in zip(per_left, per_right):
@@ -792,7 +802,7 @@ class QC(object):
         ax_freqpsd.yaxis.grid(False)
         ax_freqpsd.xaxis.grid(True)
 
-        # PSD BY PERIOD RANGE PER HOUR
+        ########################### PSD BY PERIOD RANGE PER HOUR
         ax_freqpsdhour.set_xlim((0, 23))
         ax_freqpsdhour.set_ylim((-8, 8))
         ax_freqpsdhour.set_yticks(arange(-6, 7, 2))
@@ -801,7 +811,7 @@ class QC(object):
         ax_freqpsdhour.yaxis.set_ticks_position('right')
         ax_freqpsdhour.yaxis.set_label_position('right')
 
-        # SPIKES
+        ########################### SPIKES
         ax_spikes.xaxis_date()
         ax_spikes.bar(t, spikes, width=1. / 24)
         ax_spikes.set_ylim((0, 50))
@@ -816,17 +826,20 @@ class QC(object):
 
         # labels
         ax_spikes.xaxis.set_ticks_position('bottom')
+        ax_spikes.tick_params(direction='out')
         ax_spikes.xaxis.set_major_locator(mdates.AutoDateLocator())
         if Day_span > 5:
             ax_spikes.xaxis.set_major_formatter(DateFormatter('%D'))
         else:
             ax_spikes.xaxis.set_major_formatter(DateFormatter('%D-%Hh'))
+            for label in ax_spikes.get_xticklabels():
+                label.set_fontsize(10)
 
         for label in ax_spikes.get_xticklabels():
             label.set_ha("right")
-            label.set_rotation(30)
+            label.set_rotation(25)
 
-        # SPIKES PER HOUR
+        ########################### SPIKES PER HOUR
         mspikesH = array([array(spikes[[HourUsed == h]]).mean() for h in Hour])
         ax_spikeshour.bar(Hour, mspikesH - mspikesH.mean(), width=1.)
         ax_spikeshour.set_xlim((0, 23))
@@ -839,7 +852,7 @@ class QC(object):
         ax_spikeshour.yaxis.set_label_position('right')
         ax_spikeshour.yaxis.set_label_coords(1.3, 1)
 
-        # plot gaps
+        ########################### plot gaps
         for start, end in zip(starts_uncov, ends_uncov):
             ax_spectrogram.axvspan(
                 start, end, 0, 1, facecolor="w", lw=0, zorder=100)
@@ -859,11 +872,11 @@ class QC(object):
         # PPSD
         X, Y = np.meshgrid(self.xedges, self.yedges)
         ppsd = ax_ppsd.pcolormesh(X, Y, hist_stack.T, cmap=cmap)
-        cb = plt.colorbar(ppsd, ax=ax_ppsd)
-        cb.set_label("PPSD [%]")
+        ppsd_colorbar = plt.colorbar(ppsd, ax=ax_ppsd)
+        ppsd_colorbar.set_label("PPSD [%]")
         color_limits = (0, 30)
         ppsd.set_clim(*color_limits)
-        cb.set_clim(*color_limits)
+        ppsd_colorbar.set_clim(*color_limits)
         ax_ppsd.grid(b=grid, which="major")
 
         if show_percentiles:
@@ -889,6 +902,7 @@ class QC(object):
         ax_ppsd.set_xlim(1. / f_limits[1], 1. / f_limits[0])
         ax_ppsd.set_ylim((-200, -80))
         ax_ppsd.set_xlabel('Period [s]')
+        ax_ppsd.get_xaxis().set_label_coords(0.5, -0.05)
         ax_ppsd.set_ylabel('Amplitude [dB]')
         ax_ppsd.xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
 
@@ -897,7 +911,7 @@ class QC(object):
         title = title % (self.id, starttime.date, endtime.date,
                          len(times_used))
         if title_comment:
-            fig.text(0.82, 0.978 , title_comment, bbox=dict(
+            fig.text(0.82, 0.978, title_comment, bbox=dict(
                 facecolor='red', alpha=0.5), fontsize=15)
 
         ax_ppsd.set_title(title)
@@ -1052,8 +1066,7 @@ def main():
         dataless = None
         if not args.force_paz:
             try:
-                dataless = glob.glob(eval(dict_station_name)[
-                                     'dataless_file'])[0]
+                dataless = glob.glob(eval(dict_station_name)['dataless_file'])[0]
             except:
                 print "No valid dataless found for " + net + "." + sta + "." + locid
             else:
@@ -1095,8 +1108,8 @@ def main():
                 sta + "." + locid + "." + chan + ".pkl"
             is_pickle = False
             try:
-                fi = open(filename_pkl, 'r')
-                S = cPickle.load(fi)
+                pkl_file = open(filename_pkl, 'r')
+                quality_check = cPickle.load(pkl_file)
             except:
                 print "No pickle file found for " + net + "." + sta + "." + locid + "." + chan + " (looked for " + filename_pkl + ")"
             else:
@@ -1116,8 +1129,8 @@ def main():
             print "Processing data"
             # Initiate the QC
             if is_pickle is False:
-                S = QC(all_streams[0].stats, dataless=dataless,
-                       paz=paz, skip_on_gaps=True)
+                quality_check = QC(all_streams[0].stats, dataless=dataless,
+                                   paz=paz, skip_on_gaps=True)
                 is_pickle = True
 
             # Remove the minutes before the next hour (useful when
@@ -1139,23 +1152,24 @@ def main():
             all_streams.trim(endtime=met, nearest_sample=False)
 
             # Add all streams to QC
-            S.add(all_streams)
+            quality_check.add(all_streams)
 
             # save
             # This can be 2 levels below to save a little bit of time
             # (save and loading)
             if is_pickle:
                 print filename_pkl
-                S.save(filename_pkl)
+                quality_check.save(filename_pkl)
                 print filename_pkl + " updated"
             else:
                 print "!!!!! Nothing saved/created for  " + net + "." + sta + "." + locid
             # Plot
-            if is_pickle and len(S.times_used) > 0:
+            if is_pickle and len(quality_check.times_used) > 0:
                 filename_plt = PATH_PLT + '/' + net + "." + \
                     sta + "." + locid + "." + chan + ".png"
-                S.plot(cmap=cmap, filename=filename_plt, show_percentiles=True,
-                       starttime=start, endtime=stop, title_comment=title_comment)
+                quality_check.plot(cmap=cmap, filename=filename_plt,
+                                   show_percentiles=True, starttime=start,
+                                   endtime=stop, title_comment=title_comment)
                 print filename_plt + " updated"
 
 

@@ -58,10 +58,10 @@ cmg3py46 = {'gain': 2.30426E+06,
 cmg40t = cmg40 = cmg40t30s
 
 # cmg3esp (30s) - similar to CMG40T except sensitivity -
-cmg3esp30s = cmg40t30s
+cmg3esp30s = cmg40t30s.copy()
 cmg3esp30s['sensitivity'] = 1500.
 # cmg3esp (60s) - similar to CMG40T except sensitivity -
-cmg3esp60s = cmg40t60s
+cmg3esp60s = cmg40t60s.copy()
 cmg3esp60s['sensitivity'] = 2000.
 # CMG3ESP (120s) - from NRL
 cmg3esp120s = {'gain': 5.71508E+08,

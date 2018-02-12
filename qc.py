@@ -40,7 +40,6 @@ from obspy.imaging.cm import pqlx, get_cmap
 
 from instruments import *
 from station_dictionnary import *
-from IPython import embed
 
 MATPLOTLIB_VERSION = "Exist"
 

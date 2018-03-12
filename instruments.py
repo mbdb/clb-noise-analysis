@@ -211,7 +211,8 @@ trident16pp = {'lsb': 1.000003000009e-06}
 trident8pp = {'lsb': 5.000015000045e-07}
 trident4pp = {'lsb': 2.5000075000225e-07}
 trident = trident40pp  # default for trident
-centaur = {'lsb': 2.5000075000225e-07}
+centaur = {'lsb': 2.5000075000225e-06}
+
 # Reftek
 reftek130a = {'lsb': 1.589499132928223e-06}
 rt130a = reftek130a

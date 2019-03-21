@@ -87,7 +87,7 @@ else:
 # read all files
 all_streams = Stream()
 for input_file in input_files_array:
-    print "Reading data from " + input_file
+    print("Reading data from " + input_file)
     all_streams += read(input_file, nearest_sample=False,
                         sourcename='*.[BHL][HL][ZNE]', details=True)
 
@@ -129,8 +129,8 @@ for day in Days:
                 # file_dir, sta, net, day_channel, locid, t0.year, t0.julday)
                 file_dir, net, sta, locid, day_channel, t0.year, t0.julday)
 
-            print nameout
-            print day_trace
+            print(nameout)
+            print(day_trace)
             day_trace.write(nameout, format="MSEED")
             print("write %s (%i samples, %10.2f seconds)" %
                   (nameout, day_trace.stats.npts, day_trace.stats.endtime - t0))

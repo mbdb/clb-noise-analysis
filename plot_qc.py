@@ -10,10 +10,17 @@
 #------------------------------------------------------------------------------
 import os
 import glob
-import cPickle
 import argparse
 from qc import *
-from default_qc_path import *
+from obspy.imaging.cm import pqlx, get_cmap
+
+import sys
+PYTHON_VERSION = [int(n) for n in sys.version[:3].split('.')]
+if PYTHON_VERSION < [3, 0, 0]:
+    import cPickle as Pickle
+else:
+    import _pickle as Pickle
+
 
 # PARAMETERS
 # ----------
@@ -33,14 +40,17 @@ argu_parser.add_argument("-b", "--starttime", default=UTCDateTime(2001, 1, 1), t
                          help="Start time for processing. Various format accepted. Example : 2012,2,1 / 2012-02-01 / 2012,032 / 2012032 / etc ... See UTCDateTime for a complete list. Default is 2001-1-1")
 argu_parser.add_argument("-e", "--endtime", default=UTCDateTime(2050, 1, 1), type=UTCDateTime,
                          help="End time for processing. Various format accepted. Example : 2012,2,1 / 2012-02-01 / 2012,032 / 2012032 / etc ... See UTCDateTime for a complete list. Default is 2015-1-1")
-argu_parser.add_argument("-pkl", "--path_pkl", default=PATH_PKL,
-                         help="Directory for pkl files. Default is " + PATH_PKL + " (defined in default_path_qc.py file)")
-argu_parser.add_argument("-plt", "--path_plt", default=".",
-                         help="Output directory for plt files. Default is \".\" (directory where you stand). CAREFULL : will overwrite")
+argu_parser.add_argument("-pkl", "--path_pkl", default='./PKL',
+                         help="Directory for pkl files. Default is ./PKL (defined in default_path_qc.py file)")
+argu_parser.add_argument("-plt", "--path_plt", default="./PLT",
+                         help="Output directory for plt files. Default is ./PLT (directory where you stand). CAREFULL : will overwrite")
 argu_parser.add_argument("-np", "--no_show_percentiles", default=False,
                          action='store_true', help="Do not plot percentiles. Default = plot")
 argu_parser.add_argument("-nc", "--no_show_class_models", default=False,
                          action='store_true', help="Do not plot A and B class limits. Default = plot")
+argu_parser.add_argument("--color_map", default='pqlx',
+                         help="Color map for PPSD. Default is pqlx")
+
 
 
 args = argu_parser.parse_args()
@@ -62,6 +72,19 @@ PATH_PLT = args.path_plt + "/"
 # Plot parameters
 np = args.no_show_percentiles
 nc = args.no_show_class_models
+
+
+# Color Map
+if args.color_map == 'pqlx':
+    cmap = pqlx
+elif args.color_map == 'viridis_white':
+    from obspy.imaging.cm import viridis_white
+    cmap = viridis_white
+elif args.color_map == 'viridis_white_r':
+    from obspy.imaging.cm import viridis_white_r
+    cmap = viridis_white_r
+else:
+    cmap = get_cmap(args.color_map)
 
 # --------- MAIN ------------
 PKL_FILES = glob.glob(PATH_PKL + "*.pkl")
@@ -90,17 +113,15 @@ for pkl_file in PKL_FILES:
             test_loc = True
         if test_sta and test_chan and test_net and test_loc:
             try:
-                fi = open(pkl_file, 'r')
-                S = cPickle.load(fi)
-                print S.times_used
+                S = Pickle.load(open(pkl_file, 'rb'))
             except:
-                print "Can't read " + pkl_file
+                print("Can't read " + pkl_file)
             else:
-                print "Load the pickle file : " + pkl_file
+                print("Load the pickle file : " + pkl_file)
                 tb = max(start, min(S.times_used))
                 te = min(stop, max(S.times_used))
 
                 filename_plt = PATH_PLT + net + "." + sta + "." + loc + "." + chan + ".png"
-                S.plot(filename=filename_plt, show_percentiles=not(np),
+                S.plot(cmap, filename=filename_plt, show_percentiles=not(np),
                        show_class_models=not(nc), starttime=tb, endtime=te)
                 print(filename_plt + " created")

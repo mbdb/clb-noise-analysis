@@ -16,7 +16,6 @@ Various Routines Related to Spectral Estimation
 from __future__ import with_statement
 import os
 import warnings
-import cPickle
 import math
 import bisect
 import argparse
@@ -25,11 +24,9 @@ from sys import stdout, exit
 import numpy as np
 from pylab import arange, array, DateFormatter, transpose, colorbar, linspace,\
 setp, zeros, size, ma, cm, NaN, vstack, hstack
-import matplotlib.dates as mdates
-#from obspy.core import *
 from obspy.core import Trace, Stream, UTCDateTime
 from obspy.clients.filesystem.sds import Client
-#from obspy.core.util import MATPLOTLIB_VERSION
+from obspy.core.util import MATPLOTLIB_VERSION
 from obspy.signal.filter import bandpass
 from obspy.signal.trigger import recursive_sta_lta, trigger_onset
 from obspy.signal.invsim import cosine_taper
@@ -41,7 +38,12 @@ from obspy.imaging.cm import pqlx, get_cmap
 from instruments import *
 from station_dictionnary import *
 
-MATPLOTLIB_VERSION = "Exist"
+import sys
+PYTHON_VERSION = [int(n) for n in sys.version[:3].split('.')]
+if PYTHON_VERSION < [3, 0, 0]:
+    import cPickle as Pickle
+else:
+    import _pickle as Pickle
 
 if MATPLOTLIB_VERSION is None:
     # if matplotlib is not present be silent about it and only raise the
@@ -70,6 +72,7 @@ else:
     from matplotlib.dates import date2num
     from matplotlib.ticker import FormatStrFormatter
     from matplotlib.mlab import detrend_none, window_hanning
+    import matplotlib.dates as mdates
 
 # PSD PARAMTERS
 # -------------
@@ -397,7 +400,7 @@ class QC(object):
                     msg = "Already computed time spans detected (e.g. %s), " + \
                           "skipping these slices."
                     msg = msg % t1
-                    print msg
+                    print(msg)
                 else:
                     # throw warnings if trace length is different than one
                     # hour..!?!
@@ -428,7 +431,7 @@ class QC(object):
         if len(tr) != self.len:
             msg = "Got an non-one-hour piece of data to process. Skipping"
             warnings.warn(msg)
-            print len(tr), self.len
+            print(len(tr), self.len)
             return False
         # being paranoid, only necessary if in-place operations would follow
         tr.data = tr.data.astype("float64")
@@ -443,11 +446,11 @@ class QC(object):
         # get instrument response preferably from parser object
         try:
             paz = self.parser.get_paz(self.id, datetime=tr.stats.starttime)
-        except Exception, e:
+        except Exception as e:
             if self.dataless is not None:
                 msg = "Error getting response from dataless:\n%s: %s\n" \
                       "Skipping time segment(s)."
-                msg = msg % (e.__class__.__name__, e.message)
+                msg = msg % (e.__class__.__name__, e.args[0])
                 warnings.warn(msg)
 # -------------- CHANGED (comment next line)-----------
 #                return False
@@ -599,7 +602,7 @@ class QC(object):
         # with open(filename, "w") as file:
         #    cPickle.dump(self, file)
 
-        cPickle.dump(self, open(filename, "wb"))
+        Pickle.dump(self, open(filename, "wb"))
 
 
 # -------------------- P L O T -----------------------------------------
@@ -1000,32 +1003,32 @@ def main():
         try:
             dict_station_name
         except:
-            print dict_station_name + " is not in station_dictionnary.py"
+            print(dict_station_name + " is not in station_dictionnary.py")
             exit()
 
         try:
             eval(dict_station_name)['network']
         except:
-            print dict_station_name + " does not have a network in station_dictionnary.py"
+            print(dict_station_name + " does not have a network in station_dictionnary.py")
             exit()
 
         try:
             eval(dict_station_name)['station']
         except:
-            print dict_station_name + " does not have a station in station_dictionnary.py"
+            print(dict_station_name + " does not have a station in station_dictionnary.py")
             exit()
         try:
             eval(dict_station_name)['locid']
         except:
-            print dict_station_name + " does not have a locid in station_dictionnary.py"
+            print(dict_station_name + " does not have a locid in station_dictionnary.py")
             exit()
 
         try:
             eval(dict_station_name)['dataless_file']
             # if there is a dataless_file, check if the file exists
             if not os.path.isfile(eval(dict_station_name)['dataless_file']):
-                print dict_station_name + " does not have a valid dataless_file in station_dictionnary.py :"
-                print eval(dict_station_name)['dataless_file'] + ' does not exist'
+                print(dict_station_name + " does not have a valid dataless_file in station_dictionnary.py :")
+                print(eval(dict_station_name)['dataless_file'] + ' does not exist')
                 exit()
         except:
             pass
@@ -1033,12 +1036,12 @@ def main():
         try:
             eval(dict_station_name)['path_data']
         except:
-            print dict_station_name + " does not have a path_data in station_dictionnary.py"
+            print(dict_station_name + " does not have a path_data in station_dictionnary.py")
             exit()
 
         if not os.path.exists(eval(dict_station_name)['path_data']):
-            print dict_station_name + " does not have a valid path_data in station_dictionnary.py :"
-            print eval(dict_station_name)['path_data'] + ' does not exist'
+            print(dict_station_name + " does not have a valid path_data in station_dictionnary.py :")
+            print(eval(dict_station_name)['path_data'] + ' does not exist')
             exit()
 
     # Loop over stations
@@ -1067,9 +1070,9 @@ def main():
             try:
                 dataless = glob.glob(eval(dict_station_name)['dataless_file'])[0]
             except:
-                print "No valid dataless found for " + net + "." + sta + "." + locid
+                print("No valid dataless found for " + net + "." + sta + "." + locid)
             else:
-                print "Using dataless file : " + dataless
+                print("Using dataless file : " + dataless)
         paz = None
         if dataless is None:
             # Look for a PAZ
@@ -1078,26 +1081,26 @@ def main():
                 acq = eval((eval(dict_station_name)['digitizer'].lower()))
 
             except:
-                print "No PAZ found for " + net + "." + sta + "." + locid
+                print("No PAZ found for " + net + "." + sta + "." + locid)
             else:
                 paz = {'gain': sismo['gain'],
                        'poles': sismo['poles'],
                        'zeros': sismo['zeros'],
                        'sensitivity': sismo['sensitivity'] / acq['lsb']}
-                print "PAZ from instruments.py: "
-                print paz
+                print("PAZ from instruments.py: ")
+                print(paz)
 
         # exit if no dataless nor paz
         if dataless is None and paz is None:
-            print "you must provide a dataless file or a sensor and a digitizer from instruments.py"
+            print("you must provide a dataless file or a sensor and a digitizer from instruments.py")
             exit()
 
         # exit if dataless AND paz are provided
         if dataless is not None and paz is not None:
-            print "you must provide a dataless file or a sensor and a digitizer from instruments.py but not both !"
+            print("you must provide a dataless file or a sensor and a digitizer from instruments.py but not both !")
             exit()
 
-        print "SDS archive is " + str(sds_path)
+        print("SDS archive is " + str(sds_path))
 
         # Loop over channels
         for chan in chan_proc:
@@ -1107,25 +1110,24 @@ def main():
                 sta + "." + locid + "." + chan + ".pkl"
             is_pickle = False
             try:
-                pkl_file = open(filename_pkl, 'r')
-                quality_check = cPickle.load(pkl_file)
+                quality_check = Pickle.load(open(filename_pkl, 'rb'))
             except:
-                print "No pickle file found for " + net + "." + sta + "." + locid + "." + chan + " (looked for " + filename_pkl + ")"
+                print("No pickle file found for " + net + "." + sta + "." + locid + "." + chan + " (looked for " + filename_pkl + ")")
             else:
-                print "Use the pickle file : " + filename_pkl
+                print("Use the pickle file : " + filename_pkl)
                 is_pickle = True
 
             sds_client = Client(sds_path)
 
-            print "Reading %s.%s.%s.%s in SDS archive from %s to %s" % (net, sta, locid, chan, start, stop)
+            print("Reading %s.%s.%s.%s in SDS archive from %s to %s" % (net, sta, locid, chan, start, stop))
             all_streams = sds_client.get_waveforms(
                 net, sta, locid, chan, start, stop)
 
             if len(all_streams.traces) == 0:
-                print "No data found for %s.%s.%s.%s in SDS archive from %s to %s" % (net, sta, locid, chan, start, stop)
+                print("No data found for %s.%s.%s.%s in SDS archive from %s to %s" % (net, sta, locid, chan, start, stop))
                 exit()
 
-            print "Processing data"
+            print("Processing data")
             # Initiate the QC
             if is_pickle is False:
                 quality_check = QC(all_streams[0].stats, dataless=dataless,
@@ -1157,11 +1159,11 @@ def main():
             # This can be 2 levels below to save a little bit of time
             # (save and loading)
             if is_pickle:
-                print filename_pkl
+                print(filename_pkl)
                 quality_check.save(filename_pkl)
-                print filename_pkl + " updated"
+                print(filename_pkl + " updated")
             else:
-                print "!!!!! Nothing saved/created for  " + net + "." + sta + "." + locid
+                print("!!!!! Nothing saved/created for  " + net + "." + sta + "." + locid)
             # Plot
             if is_pickle and len(quality_check.times_used) > 0:
                 filename_plt = PATH_PLT + '/' + net + "." + \
@@ -1169,7 +1171,7 @@ def main():
                 quality_check.plot(cmap=cmap, filename=filename_plt,
                                    show_percentiles=True, starttime=start,
                                    endtime=stop, title_comment=title_comment)
-                print filename_plt + " updated"
+                print(filename_plt + " updated")
 
 
 if __name__ == '__main__':
